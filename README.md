@@ -142,7 +142,7 @@ For now, this repo uses: **MIT License** (recommended for a tool like this).
 
 ## 📬 Contact
 
-- Website: https://gmentor.ai _(example placeholder)_
+- Website: https://gmentor.ai
 - GitHub: [@MaDeRkAn](https://github.com/MaDeRkAn)
 
 PRs, ideas, and bug reports are welcome.
