@@ -122,7 +122,7 @@ If it’s useful for you and you want to help it survive:
 
 - ⭐ **Star this repo** on GitHub – it seriously helps visibility.
 - 🧡 **Sponsor on GitHub** – via the _Sponsor_ button on this page.
-- ☕ **Direct support (Stripe)** – _link to your Stripe donate / payment page_.
+- ☕ **Direct support (Stripe)** – https://donate.stripe.com/6oUcN6els87m7TS1ZagjC00.
 
 All support is handled via my **company Stripe account**, not a personal wallet.
 
