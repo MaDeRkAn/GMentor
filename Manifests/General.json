@@ -1,0 +1,31 @@
+﻿{
+  "gameId": "General",
+  "version": "1.0.1",
+  "matchers": [],
+  "categories": {
+    "Quest": {
+      "label": "Quest",
+      "hotkey": "Ctrl+Alt+Q",
+      "template": "Web Search: REQUIRED. Verify names/locations; do not guess.\n\nOutput:\n**Quest:** <name or Unknown>\n- **Enter** <area/POI>\n- **Go/Turn/Climb** <landmark> → <objective>\n- **Unlock/Use/Defeat/Collect** <what> (gated reqs if any)\nYOUTUBE_QUERY: \"<Game> <QuestName> guide\"",
+      "ytTemplate": "<Game> <QuestName> guide"
+    },
+    "GunMods": {
+      "label": "Gun Mods",
+      "hotkey": "Ctrl+Alt+G",
+      "template": "Web Search: REQUIRED. Verify item/slot names; do not guess.\n\nTask:\n- Identify weapon; split into Base / VariantOrTier / Class.\n- Detect **buffs/traits** in UI and adjust builds accordingly.\n- Output one optimal build; add an alternate only if truly distinct.\n\nOutput (no extra commentary):\n**Weapon:** <Base> [Variant=<Tier>] [Class=<Archetype>]\n**Buffs/Traits:** <Detected; or None>\n**Setup:**\n- **<Slot>**: <ExactItem> — <note>\n- (repeat; omit unsupported)\nYOUTUBE_QUERY: \"<Game> <WeaponBase> best build\"",
+      "ytTemplate": "<Game> <WeaponBase> best build"
+    },
+    "LootItem": {
+      "label": "Loot / Item",
+      "hotkey": "Ctrl+Alt+L",
+      "template": "Web Search: REQUIRED. Verify map/spot; do not guess.\n\nTask:\n- Identify **loot/resource/material** and best pickup method (map/area/room + short route).\n- **Usage** and **Recycle/Craft** outputs.\n- If multiple spawns, list the **most reliable first**.\n\nOutput:\n**Item:** <Exact name or Unknown>\n**Type:** <Loot | Resource | Material | Consumable | Unknown>\n**Map:** <Map or Unknown>\n**Location:** <Area/POI>, <Floor>, <Room/Marker>\n- **Route:** **Enter** → **Go** → **Turn** → **Climb**\n- **Access:** <None | key | level | breach>\n**Usage:** <Quests/builds; or None>\n**Recycle/Craft:** <Concrete yields; craftables; or None>\n**Alternates:** <Other confirmed spawns; brief>\nYOUTUBE_QUERY: \"<Game> <Item> location\"",
+      "ytTemplate": "<Game> <Item>"
+    },
+    "KeysCards": {
+      "label": "Keys / Cards",
+      "hotkey": "Ctrl+Alt+K",
+      "template": "Web Search: REQUIRED. Verify names/doors; do not guess.\n\nTask:\n- Identify **key/keycard** and the door/room/extract it unlocks (map + floor/area).\n- Short **route** from a common landmark.\n- How to **obtain** the key; uses/durability if relevant.\n\nOutput:\n**Key:** <Exact name or Unknown>\n**Type:** <Key | Keycard>\n**Map:** <Map or Unknown>\n**Unlocks:** <Door/Room/Area>, <Floor/Area>, <POI>\n- **Route:** **Enter**/**Go**/**Turn**/**Unlock**\n**Use:** <Quests/loot; or None>\n**How to get:** <Primary> ; <Alternates>\n**Uses/Durability:** <N uses | Infinite | Unknown>\nYOUTUBE_QUERY: \"<Game> <KeyName> key location\"",
+      "ytTemplate": "<Game> <KeyName> key guide"
+    }
+  }
+}

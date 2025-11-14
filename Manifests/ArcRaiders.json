@@ -1,0 +1,31 @@
+﻿{
+  "gameId": "Arc Raiders",
+  "version": "1.0.3",
+  "matchers": [ "arc raiders", "arc-raiders", "arcraiders" ],
+  "categories": {
+    "Quest": {
+      "label": "Quest",
+      "hotkey": "Ctrl+Alt+Q",
+      "template": "Search: REQUIRED. Prefer arcraiders.wiki/wiki/Quests.\n\nOutput:\n**Quest:** <Name or Unknown>\n- **Enter** <area/POI>\n- **Go/Turn/Climb** <landmark> → <objective>\n- **Unlock/Use/Defeat/Collect** <what> (state gating reqs if any)",
+      "ytTemplate": "Arc Raiders <Quest> guide"
+    },
+    "GunMods": {
+      "label": "Gun Mods",
+      "hotkey": "Ctrl+Alt+G",
+      "template": "You configure **Arc Raiders** weapon builds from a screenshot.\n\nFACT SOURCES ONLY:\n- arcraiders.wiki/wiki/Weapons\n- arcraiders.wiki/wiki/Weapon_Modifications\n\nRULES:\n- Use only weapon and mod names + slots that exist on arcraiders.wiki.\n- If a slot/mod is not clearly confirmed, write \"Not specified on wiki\" and give short generic advice. Never invent names.\n- Always read the weapon card + Upgrade Modifiers (mag size, recoil, damage, armor pen, etc.) and let them guide the build.\n\nSTEPS:\n1) From the screenshot, read the weapon base name, class and key card traits.\n2) From the wiki, check which slots this weapon actually has and which mods are valid.\n3) Propose a practical setup that fits these traits and upgrades (control, DPS, range, reload, armor pen).\n\nOUTPUT (STRICT):\n**Weapon:** <BaseName> [Class=<Type>]\n**Card traits:** <very short summary based only on the card/upgrade modifiers>\n**Role:** <1 short line>\n**Why this build works:** <1–2 short lines tying mods to traits/upgrades>\n\n**Setup:**\nFor each real slot confirmed on the wiki for this weapon, add ONE line:\n- <Slot>: <Exact mod from wiki OR \"Not specified on wiki\"> — <1-line reason tied to traits/upgrades>\n\n**Alternatives (optional):**\n- <Mod from wiki OR \"Generic alternative\"> — <when to use>",
+      "ytTemplate": "Arc Raiders <BaseName> best build"
+    },
+    "LootItem": {
+      "label": "Loot / Item",
+      "hotkey": "Ctrl+Alt+L",
+      "template": "Search: REQUIRED. Prefer arcraiders.wiki/wiki/Loot.\n\nOutput:\n**Item:** <Exact name or Unknown>\n**Type:** <Loot | Resource | Material | Unknown>\n**Map:** <Map or Unknown>\n**Location:** <Area/POI>, <Floor if any>, <Room/Marker>\n- **Route:** **Enter** → **Go** → **Turn** → **Climb** (1–3 landmarks)\n- **Access:** <None | breach | level>\n**Usage:** <Quest(s)/crafting/builds; or None>\n**Recycle/Craft:** <e.g., 7× Rubber Parts + 1× Sensors; craftables if any>\n**Alternates:** <Other confirmed spawns; brief>",
+      "ytTemplate": "Arc Raiders <Item>"
+    },
+    "KeysCards": {
+      "label": "Keys / Cards",
+      "hotkey": "Ctrl+Alt+K",
+      "template": "Search: REQUIRED. Prefer arcraiders.wiki (areas/quests if relevant).\n\nOutput:\n**Key/Card:** <Exact name or Unknown>\n**Type:** <Key | Keycard>\n**Map:** <Map or Unknown>\n**Unlocks:** <Door/Chest/Area>, <Floor/Area>, <POI>\n- **Route:** **Enter** → **Go** → **Turn** → **Unlock** (1–3 landmarks)\n- **Access to key/card:** <How to obtain; gated reqs if any>\n**Usage:** <Quests/activities enabled; or None>\n**Alternates:** <Other confirmed spawns/sources; brief>",
+      "ytTemplate": "Arc Raiders <Key/Card> guide"
+    }
+  }
+}
