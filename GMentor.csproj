@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\gmentor.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="GMentor.PackTool\**" />
+    <EmbeddedResource Remove="GMentor.PackTool\**" />
+    <None Remove="GMentor.PackTool\**" />
+    <Page Remove="GMentor.PackTool\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\gmentor.ico" />
+    <None Remove="Packs\ArcRaiders.gpack" />
+    <None Remove="Packs\ArcRaiders.sig" />
+    <None Remove="Packs\General.gpack" />
+    <None Remove="Packs\General.sig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Packs\ArcRaiders.gpack">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Packs\ArcRaiders.sig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Packs\General.gpack">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Packs\General.sig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.10" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\gmentor.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>
