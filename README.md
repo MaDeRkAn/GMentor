@@ -1,6 +1,6 @@
 # GMentor
 
-PC assistant for gamers: select part of your screen, hit a hotkey, and let AI explain what to do — quests, guns, loot, keys.  
+AI agent for gamers: select part of your screen, hit a hotkey, and let AI explain what to do — quests, guns, loot, keys.  
 Runs locally, uses your own Gemini API key, and never proxies your data.
 
 ---
