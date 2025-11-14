@@ -101,7 +101,8 @@ namespace GMentor
             if (e.LeftButton == MouseButtonState.Pressed) DragMove();
         }
 
-        private void OnCloseClick(object sender, RoutedEventArgs e) => Close();
+        private void OnCloseClick(object sender, RoutedEventArgs e)
+            => DialogResult = false;   // instead of Close()
 
         // ===== Hyperlinks =====
         private void OnLink(object sender, RequestNavigateEventArgs e)
@@ -117,22 +118,25 @@ namespace GMentor
             catch { }
         }
 
-        // ===== Buttons =====
         private async void OnTest(object sender, RoutedEventArgs e)
         {
+            // Optimistic UI: show we're working and lock buttons
+            BtnTest.IsEnabled = false;
+            BtnContinue.IsEnabled = false;
+            Status.Text = "Checking key…";
+
             try
             {
                 var key = KeyBox.Password?.Trim();
                 if (string.IsNullOrWhiteSpace(key))
                 {
                     Status.Text = "Enter a key to test.";
-                    BtnContinue.IsEnabled = false;
                     return;
                 }
 
                 var model = GetSelectedModelId();
 
-                // simple ping via existing router
+                // Simple ping via existing router
                 await Core.ProviderRouter.TestAsync("Gemini", model, key!, _http, this);
 
                 Status.Text = $"Key looks good for {model}.";
@@ -144,12 +148,17 @@ namespace GMentor
                 // Persist model choice regardless (not sensitive)
                 _keys.Save("Gemini.Model", model);
             }
-            catch (Exception)
+            catch
             {
                 Status.Text = "Test failed. Check the key/model and try again.";
                 BtnContinue.IsEnabled = false;
             }
+            finally
+            {
+                BtnTest.IsEnabled = true;
+            }
         }
+
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
 

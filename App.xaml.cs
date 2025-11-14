@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 
 namespace GMentor
 {
@@ -10,15 +9,26 @@ namespace GMentor
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // Prevent WPF from auto-shutting down when the first window closes
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
             base.OnStartup(e);
 
             var store = new Services.SecureKeyStore("GMentor");
-            var existing = store.TryLoad("Gemini");
-            if (string.IsNullOrWhiteSpace(existing))
+            var existingKey = store.TryLoad("Gemini");
+
+            // First-run: no key yet -> show setup dialog
+            if (string.IsNullOrWhiteSpace(existingKey))
             {
                 var setup = new SetupWindow();
                 var ok = setup.ShowDialog();
-                if (ok != true) { Shutdown(); return; }
+
+                if (ok != true)
+                {
+                    // User cancelled / closed setup – terminate app cleanly
+                    Shutdown();
+                    return;
+                }
             }
 
             // Boot prompt pack provider (singleton)
@@ -33,11 +43,18 @@ namespace GMentor
             _packSync.PacksChanged += (_, __) =>
             {
                 try { _packProvider?.Reload(); }
-                catch { /* best-effort */ }
+                catch { /* best effort */ }
             };
 
-            // Fire and forget; UI remains responsive.
-            _ = _packSync.CheckNowAsync();
+            _ = _packSync.CheckNowAsync();   // fire-and-forget
+
+            // Now create and show the real main window
+            var main = new MainWindow();
+            MainWindow = main;
+            main.Show();
+
+            // From this point, closing MainWindow should close the app
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
         }
 
         protected override void OnExit(ExitEventArgs e)
