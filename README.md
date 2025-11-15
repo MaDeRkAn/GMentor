@@ -8,7 +8,7 @@ Runs locally, uses your own Gemini API key, and never proxies your data.
 ## ✨ What GMentor does
 
 - 🕹 **Game-aware prompts**  
-  Recognizes supported games (starting with **Arc Raiders**) and swaps to game-specific shortcuts and prompts.
+  Recognizes supported games (starting with **Arc Raiders** and  **Escape From Tarkov**) and swaps to game-specific shortcuts and prompts.
 
 - 🔫 **Gun builds & mods**  
   Look at your weapon screen, hit `Ctrl+Alt+G`, get a concise build suggestion with reasoning.
