@@ -1,0 +1,69 @@
+{
+  "gameId": "Escape From Tarkov",
+  "version": "1.0.1",
+  "matchers": [ "escape from tarkov", "tarkov", "eft" ],
+  "categories": {
+    "Quest": {
+      "label": "Quest / Mission",
+      "hotkey": "Ctrl+Alt+Q",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (quests).\n\nOutput:\n**Quest:** <Exact name or Unknown>\n**Trader:** <Trader or Unknown>\n**Type:** <Elimination | Find in raid | Pickup | Delivery | Exploration | Other>\n**Map:** <Map or Unknown>\n**Objectives:**\n- <1–3 short steps>\n**Items needed:** <List or None>\n**Extract/Turn-in:** <Where/how>\n**Tips:** <1–2 short safe tips>",
+      "ytTemplate": "Escape From Tarkov <Quest> guide"
+    },
+
+    "ItemsHideoutBarters": {
+      "label": "Item / Hideout / Barter",
+      "hotkey": "Ctrl+Alt+I",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (items/hideout/barters).\n\nOutput:\n**Item:** <Exact name>\n**Category:** <Barter | Valuable | Tech | Medical | Hideout | Quest | Provision | Other>\n**Used for:**\n- **Quests:** <List or None>\n- **Hideout:** <Modules or None>\n- **Barters:** <Important ones or None>\n**Crafting:** <Used in crafts or crafted from; brief>\n**Where to find:** <Maps/containers; short>\n**Value tier:** <Low | Mid | High | Very high> — <short reason>\n**Keep or sell:** <Keep | Keep early | Keep only for quests | Sell | Sell if surplus>",
+      "ytTemplate": "Escape From Tarkov <Item> worth keeping"
+    },
+
+    "WeaponBuilds": {
+      "label": "Weapons / Builds",
+      "hotkey": "Ctrl+Alt+W",
+      "template": "You configure EFT weapon builds from screenshots.\n\nSearch: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (weapons/attachments).\n\nRULES:\n- Use only real weapons, calibers, and mods listed on the wiki.\n- If a slot or part is unclear: say \"Not clear from screenshot\".\n- Keep builds simple and practical.\n\nOutput:\n**Weapon:** <Base name>\n**Caliber:** <Caliber or Unknown>\n**Role:** <Budget | CQB | Mid-range | Long-range | Recoil | Silent>\n**Build goal:** <1 short line>\n\n**Recommended build:**\n- <Slot>: <Mod> — <very short reason>\n(Only show real slots for this weapon.)\n\n**Notes:** <1–2 short lines>",
+      "ytTemplate": "Escape From Tarkov <Weapon> build"
+    },
+
+    "KeysCards": {
+      "label": "Keys / Keycards",
+      "hotkey": "Ctrl+Alt+K",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (keys/keycards).\n\nOutput:\n**Key:** <Exact name or Unknown>\n**Map:** <Map or Multiple/Unknown>\n**Unlocks:** <Room/area/floor>\n**Loot value:** <Low | Mid | High | Very high> — <short reason>\n**Quests:** <Used in quests or None>\n**How to get:** <Main sources; brief>\n**Keep or sell:** <Keep | Keep early | Sell | Sell if surplus>",
+      "ytTemplate": "Escape From Tarkov <Key> worth it"
+    },
+
+    "Ammo": {
+      "label": "Ammo / Penetration",
+      "hotkey": "Ctrl+Alt+A",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (ammo).\n\nOutput:\n**Ammo:** <Exact name>\n**Caliber:** <Caliber>\n**Penetration tier:** <Very low | Low | Mid | High | Top> — <short note>\n**Damage tier:** <Low | Mid | High> — <short note>\n**Effective vs armor:** <Best vs armor class X–Y>\n**Use for:** <Early/mid/late wipe; body/limb meta>\n**Keep or sell:** <Keep | Keep only best | Sell | Use for practice>",
+      "ytTemplate": "Escape From Tarkov <Ammo> ammo test"
+    },
+
+    "ArmorPlates": {
+      "label": "Armor / Plates",
+      "hotkey": "Ctrl+Alt+R",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (armor/plates).\n\nOutput:\n**Item:** <Armor/rig/plate name>\n**Type:** <Vest | Rig | Helmet | Plate>\n**Armor class:** <1–6>\n**Zones:** <Body parts covered>\n**Material:** <Material or Unknown>\n**Role:** <Early | Mid | Late wipe | Budget | Tanky>\n**Best vs:** <Armor class range>\n**Value tier:** <Low | Mid | High | Very high> — <short reason>\n**Keep or sell:** <Keep | Keep early | Sell | Use then sell>",
+      "ytTemplate": "Escape From Tarkov <Armor> review"
+    },
+
+    "MapLocation": {
+      "label": "Map / Location / Extract",
+      "hotkey": "Ctrl+Alt+M",
+      "template": "Use screenshot to guess the map and rough position.\nSearch: ALLOWED. Prefer escapefromtarkov.fandom.com/wiki (maps/extracts).\n\nOutput:\n**Map:** <Map or Unknown>\n**Area:** <Best visual guess; \"Not sure\" if unclear>\n**Nearby landmarks:** <1–3 simple ones>\n**Likely side:** <e.g., Customs east, Shoreline resort side>\n**Nearby extracts:** <1–3 likely extracts; note if conditional>\n**Route:** <1–2 short lines: simple direction to safe extract>",
+      "ytTemplate": "Escape From Tarkov <Map> extract guide"
+    },
+
+    "TraderInfo": {
+      "label": "Trader / Unlock",
+      "hotkey": "Ctrl+Alt+T",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (traders).\n\nOutput:\n**Trader:** <Name>\n**Focus:** <Short summary>\n**Loyalty levels:** <Requirements: PMC level / rep / money>\n**Offers:** <When this item/mod/ammo unlocks; brief>\n**Rep notes:** <Important effects or None>\n**Tip:** <1 short line>",
+      "ytTemplate": "Escape From Tarkov <Trader> progression"
+    },
+
+    "HideoutCrafting": {
+      "label": "Hideout / Crafting",
+      "hotkey": "Ctrl+Alt+H",
+      "template": "Search: REQUIRED. Prefer escapefromtarkov.fandom.com/wiki (hideout/crafts).\n\nOutput:\n**Station:** <Workbench 2, Medstation 1, etc.>\n**Craft:** <Output item(s)>\n**Inputs:** <Main required items>\n**Time:** <Craft time>\n**Requires:** <Station level / hideout level / trader unlocks>\n**Usefulness:** <Low | Mid | High | Very high> — <1 short reason>\n**Keep or skip:** <Worth doing | Situational | Usually skip>",
+      "ytTemplate": "Escape From Tarkov <Station> crafts"
+    }
+  }
+}
