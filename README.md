@@ -28,7 +28,7 @@ Runs locally, uses your own Gemini API key, and never proxies your data.
 
 1. **Download GMentor**
 
-   > 🔗 **Download (Windows)** – [[https://github.com/MaDeRkAn/GMentor/releases/tag/v1.0.0](https://github.com/MaDeRkAn/GMentor/releases/download/v1.0.0/GMentor-1.0.0.zip)]
+   > 🔗 **Download (Windows)** – [[https://github.com/MaDeRkAn/GMentor/releases/tag/v1.0.0](https://github.com/MaDeRkAn/GMentor/releases/download/v1.0.0/GMentor-1.0.1.zip)]
    - You may see a SmartScreen warning because GMentor is newly released.
      Click “More info” → “Run anyway”.
 
