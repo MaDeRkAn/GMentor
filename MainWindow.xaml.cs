@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -8,11 +10,11 @@ using System.Windows.Interop;
 using GMentor.Core;
 using System.Windows.Documents;
 using System.Windows.Media;
-using GMentor.Core.Services;
-using GMentor.Core.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Media.Animation;
+using GMentor.Models;
+using GMentor.Services;
 
 namespace GMentor
 {
@@ -36,22 +38,16 @@ namespace GMentor
 
         private const string GoogleUsageUrl = "https://aistudio.google.com/app/usage?timeRange=last-28-days";
 
-        // ---- global hotkeys
-        private const int HK_QUEST = 1001;
-        private const int HK_GUN = 1002;
-        private const int HK_LOOTS = 1003;
-        private const int HK_KEYS = 1004;
-
-        // ---- hwnd + wndproc
+        // ---- hwnd + global hotkeys
         private HwndSource? _hwndSrc;
         private IntPtr _hwnd = IntPtr.Zero;
-        private bool _hotkeysRegistered;
+        private readonly List<int> _registeredHotkeyIds = new();          // current OS registrations
+        private readonly Dictionary<int, string> _hotkeyToCategory = new(); // hotkeyId -> categoryId
 
         private GameDetector? _gameDetector;
 
         // ---- dynamic shortcuts cache for current game
         private List<ShortcutCapability> _activeShortcuts = new();
-        private readonly Dictionary<int, string> _hotkeyToCategory = new(); // HK_* -> categoryId
 
         private const string DefaultModel = "gemini-2.5-flash";
 
@@ -74,10 +70,8 @@ namespace GMentor
             RefreshShortcutsFor(initialTitle);
 
             // Surface current provider/model/key
-            // Surface current provider/model/key
             LblProvider.Text = "Gemini";
 
-            // pick saved model or default to pro
             var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
             LblModel.Text = savedModel;
 
@@ -111,32 +105,33 @@ namespace GMentor
             _hwndSrc.AddHook(WndProc);
             _hwnd = _hwndSrc.Handle;
 
-            // Register global hotkeys: Ctrl+Alt+(Q/G/L/K)
-            var mods = MOD_CONTROL | MOD_ALT;
-            _hotkeysRegistered =
-                RegisterHotKey(_hwnd, HK_QUEST, mods, KeyInterop.VirtualKeyFromKey(Key.Q)) &&
-                RegisterHotKey(_hwnd, HK_GUN, mods, KeyInterop.VirtualKeyFromKey(Key.G)) &&
-                RegisterHotKey(_hwnd, HK_LOOTS, mods, KeyInterop.VirtualKeyFromKey(Key.L)) &&
-                RegisterHotKey(_hwnd, HK_KEYS, mods, KeyInterop.VirtualKeyFromKey(Key.K));
+            // Register initial global hotkeys for whatever shortcuts are active (General on startup)
+            ReloadGlobalHotkeys();
         }
 
         protected override void OnClosed(EventArgs e)
         {
             try
             {
-                if (_hotkeysRegistered && _hwnd != IntPtr.Zero)
+                if (_hwnd != IntPtr.Zero)
                 {
-                    UnregisterHotKey(_hwnd, HK_QUEST);
-                    UnregisterHotKey(_hwnd, HK_GUN);
-                    UnregisterHotKey(_hwnd, HK_LOOTS);
-                    UnregisterHotKey(_hwnd, HK_KEYS);
+                    foreach (var id in _registeredHotkeyIds)
+                    {
+                        UnregisterHotKey(_hwnd, id);
+                    }
+
+                    _registeredHotkeyIds.Clear();
+                    _hotkeyToCategory.Clear();
                 }
+
                 _hwndSrc?.RemoveHook(WndProc);
             }
-            catch { /* ignore on shutdown */ }
+            catch
+            {
+                // ignore on shutdown
+            }
             finally
             {
-                _hotkeysRegistered = false;
                 _hwnd = IntPtr.Zero;
                 _hwndSrc = null;
                 _tray.Dispose();
@@ -228,12 +223,6 @@ namespace GMentor
         {
             _activeShortcuts = caps.Shortcuts?.ToList() ?? new List<ShortcutCapability>();
 
-            _hotkeyToCategory.Clear();
-            if (_activeShortcuts.Count > 0) _hotkeyToCategory[HK_QUEST] = _activeShortcuts[0].Id;
-            if (_activeShortcuts.Count > 1) _hotkeyToCategory[HK_GUN] = _activeShortcuts[1].Id;
-            if (_activeShortcuts.Count > 2) _hotkeyToCategory[HK_LOOTS] = _activeShortcuts[2].Id;
-            if (_activeShortcuts.Count > 3) _hotkeyToCategory[HK_KEYS] = _activeShortcuts[3].Id;
-
             string FallbackForIndex(int i) => i switch
             {
                 0 => "Ctrl+Alt+Q",
@@ -260,6 +249,106 @@ namespace GMentor
                 lines.Add("No shortcuts for this game.");
 
             ShortcutsList.ItemsSource = lines;
+
+            // After updating shortcuts list, refresh actual OS global hotkeys
+            ReloadGlobalHotkeys();
+        }
+
+        /// <summary>
+        /// Registers global hotkeys based on _activeShortcuts (current game/package).
+        /// Called on startup and whenever capabilities change.
+        /// </summary>
+        private void ReloadGlobalHotkeys()
+        {
+            if (_hwnd == IntPtr.Zero)
+                return; // window handle not ready yet
+
+            // Unregister previous set
+            foreach (var id in _registeredHotkeyIds)
+            {
+                UnregisterHotKey(_hwnd, id);
+            }
+
+            _registeredHotkeyIds.Clear();
+            _hotkeyToCategory.Clear();
+
+            if (_activeShortcuts == null || _activeShortcuts.Count == 0)
+                return;
+
+            // Use simple incremental ids for WM_HOTKEY
+            var nextId = 2000;
+
+            string FallbackForIndex(int i) => i switch
+            {
+                0 => "Ctrl+Alt+Q",
+                1 => "Ctrl+Alt+G",
+                2 => "Ctrl+Alt+L",
+                3 => "Ctrl+Alt+K",
+                _ => ""
+            };
+
+            for (int i = 0; i < _activeShortcuts.Count; i++)
+            {
+                var s = _activeShortcuts[i];
+
+                // Use the manifest hotkey if set, otherwise fallback (for General/old packs)
+                var hotkeyText = string.IsNullOrWhiteSpace(s.HotkeyText)
+                    ? FallbackForIndex(i)
+                    : s.HotkeyText;
+
+                if (!TryParseHotkey(hotkeyText, out var modifiers, out var key))
+                    continue;
+
+                var id = nextId++;
+                var vk = KeyInterop.VirtualKeyFromKey(key);
+
+                if (RegisterHotKey(_hwnd, id, modifiers, vk))
+                {
+                    _registeredHotkeyIds.Add(id);
+                    _hotkeyToCategory[id] = s.Id;   // s.Id is categoryId (Quest, LootItem, ItemsHideoutBarters, etc.)
+                }
+            }
+        }
+
+        private static bool TryParseHotkey(string input, out int modifiers, out Key key)
+        {
+            modifiers = 0;
+            key = Key.None;
+
+            if (string.IsNullOrWhiteSpace(input))
+                return false;
+
+            var parts = input.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length == 0)
+                return false;
+
+            // All but last = modifiers
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                switch (parts[i].ToLowerInvariant())
+                {
+                    case "ctrl":
+                    case "control":
+                        modifiers |= MOD_CONTROL;
+                        break;
+                    case "alt":
+                        modifiers |= MOD_ALT;
+                        break;
+                    case "shift":
+                        modifiers |= 0x0004; // MOD_SHIFT
+                        break;
+                    case "win":
+                    case "windows":
+                        modifiers |= 0x0008; // MOD_WIN
+                        break;
+                }
+            }
+
+            var keyPart = parts[^1];
+            if (!Enum.TryParse(keyPart, true, out key))
+                return false;
+
+            return true;
         }
 
         // ===== Custom title bar events =====
@@ -279,7 +368,7 @@ namespace GMentor
             {
                 Hide();
                 // Keep classic tray balloon only here.
-                _tray.ShowBalloon("GMentor is running in the tray.\nUse Ctrl+Alt+Q / G / L / K to analyze.");
+                _tray.ShowBalloon("GMentor is running in the tray.\nUse the shortcuts shown in the app to analyze.");
             }
         }
 
@@ -296,21 +385,9 @@ namespace GMentor
             {
                 int id = wParam.ToInt32();
 
-                // Use dynamic mapping if present; else fall back to legacy categories.
-                if (_hotkeyToCategory.TryGetValue(id, out var dynamicCategoryId))
+                if (_hotkeyToCategory.TryGetValue(id, out var categoryId))
                 {
-                    _ = RunFlowAsync(dynamicCategoryId);
-                }
-                else
-                {
-                    _ = id switch
-                    {
-                        HK_QUEST => RunFlowAsync("Quest"),
-                        HK_GUN => RunFlowAsync("GunMods"),
-                        HK_LOOTS => RunFlowAsync("LootItem"),
-                        HK_KEYS => RunFlowAsync("KeysCards"),
-                        _ => Task.CompletedTask
-                    };
+                    _ = RunFlowAsync(categoryId);
                 }
 
                 handled = true;
@@ -358,9 +435,9 @@ namespace GMentor
                 if (string.IsNullOrWhiteSpace(key))
                 {
                     RestoreUiAfterRequest();
-                   MessageBoxEx.Show(this,
-                        "You need an API key.\nGo: File → Change Provider/Key…",
-                        "Missing key", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBoxEx.Show(this,
+                         "You need an API key.\nGo: File → Change Provider/Key…",
+                         "Missing key", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -425,23 +502,23 @@ namespace GMentor
                 {
                     case 503:
                         StatusText.Text = "Provider overloaded.";
-                       MessageBoxEx.Show(this,
-                            "Gemini is overloaded right now.\n\n" +
-                            "It’s not your key and not your request. The model is at capacity.",
-                            "AI Model Overloaded (503)", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBoxEx.Show(this,
+                             "Gemini is overloaded right now.\n\n" +
+                             "It’s not your key and not your request. The model is at capacity.",
+                             "AI Model Overloaded (503)", MessageBoxButton.OK, MessageBoxImage.Warning);
                         break;
 
                     case 429:
                         StatusText.Text = "Free-tier limit reached.";
-                       MessageBoxEx.Show(this,
-                            "You've hit the usage limits for this model.\n\n" +
-                            "Action required:\n" +
-                            "• Switch to another Gemini model in File → Change Provider/Key…\n" +
-                            "• Or check your usage here:\n" +
-                            "   https://aistudio.google.com/app/usage?timeRange=last-28-days",
-                            "Rate Limit (429)",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Warning);
+                        MessageBoxEx.Show(this,
+                             "You've hit the usage limits for this model.\n\n" +
+                             "Action required:\n" +
+                             "• Switch to another Gemini model in File → Change Provider/Key…\n" +
+                             "• Or check your usage here:\n" +
+                             "   https://aistudio.google.com/app/usage?timeRange=last-28-days",
+                             "Rate Limit (429)",
+                             MessageBoxButton.OK,
+                             MessageBoxImage.Warning);
 
                         TryOpen(GoogleUsageUrl);
                         break;
@@ -449,25 +526,25 @@ namespace GMentor
                     case 401:
                     case 403:
                         StatusText.Text = "Auth failed.";
-                       MessageBoxEx.Show(this,
-                            "Auth error from Gemini.\n\n" +
-                            "Double-check your API key in File → Change Provider/Key…",
-                            $"Auth Error ({ex.HttpCode})", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBoxEx.Show(this,
+                             "Auth error from Gemini.\n\n" +
+                             "Double-check your API key in File → Change Provider/Key…",
+                             $"Auth Error ({ex.HttpCode})", MessageBoxButton.OK, MessageBoxImage.Error);
                         break;
 
                     case 408:
                     case 504:
                         StatusText.Text = "AI timed out.";
-                       MessageBoxEx.Show(this,
-                            "The AI didn’t respond in time.\nTry the shortcut again from the same screen crop.",
-                            $"Timeout ({ex.HttpCode})", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBoxEx.Show(this,
+                             "The AI didn’t respond in time.\nTry the shortcut again from the same screen crop.",
+                             $"Timeout ({ex.HttpCode})", MessageBoxButton.OK, MessageBoxImage.Information);
                         break;
 
                     default:
                         StatusText.Text = "AI error.";
-                       MessageBoxEx.Show(this,
-                            $"The AI returned an error ({ex.HttpCode} {ex.ApiStatus}).\n\n{ex.ApiMessage}",
-                            "AI Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBoxEx.Show(this,
+                             $"The AI returned an error ({ex.HttpCode} {ex.ApiStatus}).\n\n{ex.ApiMessage}",
+                             "AI Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         break;
                 }
             }
@@ -477,10 +554,10 @@ namespace GMentor
                 BadgeSearch.Visibility = Visibility.Collapsed;
 
                 StatusText.Text = "Free-tier limit reached.";
-               MessageBoxEx.Show(this,
-                    "You’ve likely hit the free-tier per-minute or per-day cap.\n\n" +
-                    "Check your usage here:\nhttps://aistudio.google.com/app/usage?timeRange=last-28-days",
-                    "Rate Limit (429)", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBoxEx.Show(this,
+                     "You’ve likely hit the free-tier per-minute or per-day cap.\n\n" +
+                     "Check your usage here:\nhttps://aistudio.google.com/app/usage?timeRange=last-28-days",
+                     "Rate Limit (429)", MessageBoxButton.OK, MessageBoxImage.Warning);
                 TryOpen(GoogleUsageUrl);
             }
             catch (TaskCanceledException)
@@ -489,8 +566,8 @@ namespace GMentor
                 BadgeSearch.Visibility = Visibility.Collapsed;
 
                 StatusText.Text = "Request canceled/timeout.";
-               MessageBoxEx.Show(this,"The request was canceled or timed out.\nTry the shortcut again.",
-                    "Timeout", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBoxEx.Show(this, "The request was canceled or timed out.\nTry the shortcut again.",
+                     "Timeout", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -499,8 +576,8 @@ namespace GMentor
 
                 Debug.WriteLine(ex);
                 StatusText.Text = "Something went wrong.";
-               MessageBoxEx.Show(this,"The request failed. Double-check your key/model and try again.",
-                    "Request error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBoxEx.Show(this, "The request failed. Double-check your key/model and try again.",
+                     "Request error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -637,7 +714,6 @@ namespace GMentor
             }
         }
 
-
         private static void TryOpen(string url)
         {
             try { Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true }); }
@@ -668,17 +744,12 @@ namespace GMentor
                 "How to use GMentor\n" +
                 "------------------\n" +
                 "1) Open your game and go to the screen you want analyzed.\n" +
-                "2) Press a shortcut and drag a box over that area:\n" +
-                "   • Ctrl+Alt+Q – Quest / Mission\n" +
-                "   • Ctrl+Alt+G – Gun / Mods\n" +
-                "   • Ctrl+Alt+L – Loot / Item\n" +
-                "   • Ctrl+Alt+K – Keys / Cards\n" +
-                "\n" +
-                "Tip: If GMentor detects a supported game, shortcut names and actions adjust automatically. Check the “Shortcuts” bar after launching your game.\n" +
+                "2) Press a shortcut and drag a box over that area.\n" +
+                "3) Shortcuts change depending on the detected game – check the “Shortcuts” bar in the app.\n" +
                 "\n" +
                 "You can minimize GMentor — it keeps running in the tray and hotkeys stay active.";
 
-           MessageBoxEx.Show(this,msg, "How to use GMentor", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBoxEx.Show(this, msg, "How to use GMentor", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void OnHelpHowTo(object sender, RoutedEventArgs e) => OpenHowTo();
@@ -687,12 +758,12 @@ namespace GMentor
 
         private void OnHelpPrivacy(object sender, RoutedEventArgs e)
         {
-           MessageBoxEx.Show(this,
-                "Privacy:\n\n" +
-                "• Your API key stays on your PC (encrypted with Windows).\n" +
-                "• GMentor never proxies your key or requests.\n" +
-                "• Only the crop you select is sent straight to the AI provider.",
-                "Privacy", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBoxEx.Show(this,
+                 "Privacy:\n\n" +
+                 "• Your API key stays on your PC (encrypted with Windows).\n" +
+                 "• GMentor never proxies your key or requests.\n" +
+                 "• Only the crop you select is sent straight to the AI provider.",
+                 "Privacy", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void OnCopy(object sender, RoutedEventArgs e)
@@ -707,8 +778,8 @@ namespace GMentor
             var q = _lastYouTubeQuery ?? ResultParser.SynthesizeYouTubeQueryFrom(plainText);
             if (string.IsNullOrWhiteSpace(q))
             {
-               MessageBoxEx.Show(this,"No tutorial query yet—run a request first.", "No query",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBoxEx.Show(this, "No tutorial query yet—run a request first.", "No query",
+                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
             TryOpen($"https://www.youtube.com/results?search_query={Uri.EscapeDataString(q)}");

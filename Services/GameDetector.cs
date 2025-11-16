@@ -1,6 +1,4 @@
-﻿using GMentor.Services;
-
-namespace GMentor.Core.Services
+﻿namespace GMentor.Services
 {
     /// <summary>
     /// Polls foreground window title every N seconds, debounced.
@@ -38,7 +36,7 @@ namespace GMentor.Core.Services
                     return;
                 }
 
-                if ((DateTime.UtcNow - _firstSeen) < _debounce) return;
+                if (DateTime.UtcNow - _firstSeen < _debounce) return;
 
                 if (!string.Equals(_pending, _lastStable, StringComparison.OrdinalIgnoreCase))
                 {

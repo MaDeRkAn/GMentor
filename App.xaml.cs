@@ -1,11 +1,12 @@
-﻿using System.Windows;
+﻿using GMentor.Services;
+using System.Windows;
 
 namespace GMentor
 {
     public partial class App : Application
     {
-        private GMentor.Core.Services.PromptPackProvider? _packProvider;
-        private GMentor.Core.Services.PackSyncService? _packSync;
+        private PromptPackProvider? _packProvider;
+        private PackSyncService? _packSync;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -32,11 +33,11 @@ namespace GMentor
             }
 
             // Boot prompt pack provider (singleton)
-            _packProvider = new GMentor.Core.Services.PromptPackProvider();
+            _packProvider = new PromptPackProvider();
             GMentor.Core.PromptComposer.Provider = _packProvider;
 
             // One-shot sync on startup (no background timer)
-            _packSync = new GMentor.Core.Services.PackSyncService(
+            _packSync = new Services.PackSyncService(
                 baseUrl: "https://packs.gmentor.ai",
                 period: TimeSpan.Zero);
 

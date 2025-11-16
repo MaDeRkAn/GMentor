@@ -1,4 +1,4 @@
-﻿using GMentor.Core.Services;
+﻿using GMentor.Models;
 
 namespace GMentor.Core
 {
@@ -15,7 +15,7 @@ namespace GMentor.Core
             return Provider.GetPrompt(rawGame, category, ocrSnippet);
         }
 
-        public static Models.GameCapabilities GetCapabilities(string rawGame)
+        public static GameCapabilities GetCapabilities(string rawGame)
             => Provider is null
                 ? new Models.GameCapabilities()
                 : Provider.GetActiveCapabilities(rawGame);

@@ -1,10 +1,9 @@
-﻿using GMentor.Services;
-using System.IO;
+﻿using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace GMentor.Core.Services
+namespace GMentor.Services
 {
     /// <summary>
     /// Fetches {baseUrl}/index.json and syncs packs into %AppData%\GMentor\packs.

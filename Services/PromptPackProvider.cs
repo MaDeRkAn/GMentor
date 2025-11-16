@@ -1,5 +1,5 @@
-﻿using GMentor.Core.Models;
-using GMentor.Services;
+﻿using GMentor.Core;
+using GMentor.Models;
 using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace GMentor.Core.Services
+namespace GMentor.Services
 {
     /// <summary>
     /// Loads signed *.gpack JSONs from %AppData%\GMentor\packs (user) and %ProgramData%\GMentor\packs (machine).

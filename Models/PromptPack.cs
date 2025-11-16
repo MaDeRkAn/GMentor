@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace GMentor.Core.Models
+namespace GMentor.Models
 {
     // On-disk signed JSON ("*.gpack") – not encrypted
     public sealed class PromptPack
