@@ -1,149 +1,148 @@
 # GMentor
 
-AI agent for gamers: select part of your screen, hit a hotkey, and let AI explain what to do — quests, guns, loot, keys.  
-Runs locally, uses your own Gemini API key, and never proxies your data.
+AI assistant for gamers — select part of your screen, press a hotkey, and get instant, game-specific guidance.  
+Works with **any game**, with enhanced support for **Arc Raiders** and **Escape From Tarkov**.  
+Runs locally and uses your own AI key; your data never leaves your PC except for the cropped image sent to your provider.
 
 ---
 
 ## ✨ What GMentor does
 
-- 🕹 **Game-aware prompts**  
-  Recognizes supported games (starting with **Arc Raiders** and  **Escape From Tarkov**) and swaps to game-specific shortcuts and prompts.
+- 🎮 **Universal game analysis**  
+  Works on *any* PC game. GMentor reads whatever is on your screen and generates fast, accurate guidance.
 
-- 🔫 **Gun builds & mods**  
-  Look at your weapon screen, hit `Ctrl+Alt+G`, get a concise build suggestion with reasoning.
+- 🧩 **Enhanced support packs**  
+  Extra-deep prompts for **Arc Raiders** and **Escape From Tarkov** (quests, guns, items, extracts, ammo, armor, etc.).
 
-- 📦 **Loot / keys / cards**  
-  Crop any item, keycard, or loot screen and get “where it spawns / how to use it”.
+- 🔫 **Weapons & builds**  
+  Highlight your gun → get a clean build or mod recommendation tailored to the game.
 
-- 🔍 **Search-backed answers**  
-  Uses Gemini’s web search to cross-check with **arcraiders.wiki** and other sources when needed.
+- 📦 **Loot & items**  
+  Instantly get “what it is, where it’s used, should you keep it”.
 
-- 🧠 **Local, key stays on your PC**  
-  Your Gemini API key is encrypted in the Windows credential store. Requests go straight from your PC to Google.
+- 🔍 **Optional search-backed answers**  
+  GMentor can check game wikis or official sources automatically when needed.
+
+- 🔐 **Local & safe**  
+  Your API key is encrypted in Windows. GMentor never proxies requests.
 
 ---
 
-## 🚀 Getting started
+## 🚀 Getting Started
 
-1. **Download GMentor**
+1. **Download (Windows)**  
+   👉 **Latest:** https://github.com/MaDeRkAn/GMentor/releases/download/1.0.2/GMentor-1.0.2.zip
+   > You may see a SmartScreen warning because GMentor is a new app.  
+   > Click **“More info” → “Run anyway”**.
 
-   > 🔗 **Download (Windows)** – https://github.com/MaDeRkAn/GMentor/releases/download/1.0.2/GMentor-1.0.2.zip
-   - You may see a SmartScreen warning because GMentor is newly released.
-     Click “More info” → “Run anyway”.
+2. **Get an AI API key**
 
-2. **Get a free Gemini API key**
-
-   - Go to Google AI Studio and create an API key for `gemini-2.5-flash` or `gemini-2.5-pro`.
-   - Free tier is enough for most casual use.
+   - Create a key for a Gemini-compatible model (e.g. `gemini-2.5-flash`).
+   - Free tier is usually enough for casual use.
 
 3. **First launch**
 
    - Start `GMentor.exe`.
    - Go to **File → Change Provider/Key…**
-   - Paste your Gemini API key and hit **Test**, then **Continue**.
+   - Paste your API key, hit **Test**, then **Continue**.
 
 4. **Use in-game**
 
    - Open your game and the screen you care about.
-   - Press one of the global hotkeys and drag a rectangle over the area:
+   - Press a global hotkey and drag a rectangle over the area:
      - `Ctrl+Alt+Q` – Quest / Mission
-     - `Ctrl+Alt+G` – Gun Mods
+     - `Ctrl+Alt+G` – Gun Mods / Builds
      - `Ctrl+Alt+L` – Loot / Item
      - `Ctrl+Alt+K` – Keys / Cards
-   - GMentor sends **only that cropped image** to Gemini with a game-specific prompt.
-   - The answer appears in the GMentor window (you can copy it or open a related YouTube search).
+   - GMentor sends **only that cropped image** to the AI with a game-aware prompt.
+   - The answer appears in the GMentor window; you can copy it or open a related YouTube search.
 
 GMentor lives in the system tray when minimized; hotkeys stay active.
 
 ---
 
-## 🖼️ Screenshots
+## 🖼️ Example
 
-### 🔍 In-game usage (Arc Raiders – Loot Scan)
-
-GMentor detects the game, captures only the selected screen region, and generates a search-backed explanation.
+GMentor detects what you captured, identifies the game context (if a manifest exists), and produces a fast, minimal, actionable answer.
 
 ![GMentor Screenshot](docs/images/gmentor-loot-example.png)
 
 ---
 
-## 🔐 Privacy & security
+## 🔐 Privacy
 
-- Your **Gemini API key never leaves your machine**. It’s stored via Windows DPAPI using a simple secure key store.
-- GMentor **does not proxy** calls. The cropped image + text go **directly from your PC to Google**.
-- No analytics, no telemetry. The only logs are local structured logs to help you debug issues if you want to.
-
----
-
-## 🧠 Why Gemini?
-
-- **Free tier** that’s actually usable for hobby play.
-- Multimodal: can handle both screenshots and text instructions.
-- Strong web search integration: good enough to pull wiki/guide context for new games like Arc Raiders.
-
-You are free to fork and wire this to other providers if you want (OpenAI, Claude, etc.).
+- Your API key is stored via **Windows DPAPI** (encrypted on your machine).
+- GMentor **does not proxy** requests; calls go directly from your PC to the AI provider.
+- No telemetry, no external analytics.  
+  Optional local logs exist only to help you debug if you choose.
 
 ---
 
-## 🏗️ Tech stack
+## 🧠 Why GMentor?
 
-- **Client:** WPF / .NET (C#)
-- **AI:** Gemini 2.5 (flash / pro), via HTTP client
-- **Packs:** signed JSON `.gpack` files with prompt manifests per game (e.g. `ArcRaiders.gpack`)
+- Works with **any game** out of the box.
+- Becomes smarter with **per-game JSON manifests** (Arc Raiders, EFT, more to come).
+- Lets you stay in the game instead of alt-tabbing through wikis and YouTube.
+- Fully open source; you can inspect and extend everything.
+
+---
+
+## 🏗️ Tech Stack
+
+- **Client:** WPF / .NET (C#)  
+- **AI:** Gemini-compatible HTTP client  
+- **Game support:** JSON manifests under `manifests/` describing shortcuts + prompt templates per game
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome. Some high-leverage areas:
+Contributions are welcome.
 
-- New game packs (prompts for other games, with manifests).
-- Better prompt tuning for:
-  - Gun builds (less hallucination, more wiki-grounded).
-  - Quest routes and loot locations.
-- UX improvements in the WPF app.
+High-impact ways to help:
+
+- Add **new game manifests** under `manifests/` (JSON format, using the existing files as reference).
+- Improve prompt templates for:
+  - Gun builds (less hallucination, more grounded in trusted sources)
+  - Quests, loot, keys, extracts, and map guidance
+- UX and usability improvements in the WPF app.
 
 Typical flow:
 
-1. Fork the repo.
-2. Create a feature branch: `feature/add-xyz-game-pack`.
-3. Open a PR with:
-   - The new manifest in `manifests/`.
-   - Any code changes in `GMentor.Core` or the WPF client.
-   - A short description and screenshots or examples.
+1. Fork the repo.  
+2. Create a feature branch, for example:  
+   `feature/add-<game>-manifest`  
+3. Add or update:
+   - A JSON manifest in `manifests/` following the supported format  
+   - Any required changes in `GMentor.Core` or the WPF client  
+4. Open a PR with a short description and, if possible, screenshots or example outputs.
 
 ---
 
-## 💸 Supporting development
+## 💸 Supporting Development
 
-GMentor is free, but it costs time to maintain and tune (especially for game-specific packs).
+GMentor is free, but tuning prompts, adding new games, and eventually training a **game-focused AI model** takes real time.
 
-If it’s useful for you and you want to help it survive:
+If you want to help it grow:
 
-- ⭐ **Star this repo** on GitHub – it seriously helps visibility.
-- 🧡 **Sponsor on GitHub** – via the _Sponsor_ button on this page.
-- ☕ **Direct support (Stripe)** – https://donate.stripe.com/6oUcN6els87m7TS1ZagjC00.
+- ⭐ **Star this repo** – improves visibility.  
+- 🧡 **Sponsor on GitHub** – via the **Sponsor** button.  
+- ☕ **Direct support (Stripe)** – https://donate.stripe.com/6oUcN6els87m7TS1ZagjC00  
 
-All support is handled via my **company Stripe account**, not a personal wallet.
+All support is processed via my company Stripe account.
 
 ---
 
 ## 📜 License
 
-_Choose one and put the actual license text in `LICENSE`_:
-
-- **MIT** if you want max adoption, including commercial forks.
-- **Apache-2.0** if you want patent protection language.
-- **AGPL / GPL** if you want to force improvements to stay open.
-
-For now, this repo uses: **MIT License** (recommended for a tool like this).
+This project uses the **MIT License**.  
+See [`LICENSE`](LICENSE) for details.
 
 ---
 
 ## 📬 Contact
 
-- Website: https://gmentor.ai
+- Website: https://gmentor.ai  
 - GitHub: [@MaDeRkAn](https://github.com/MaDeRkAn)
 
-PRs, ideas, and bug reports are welcome.
+PRs, ideas, and bug reports are always welcome.
