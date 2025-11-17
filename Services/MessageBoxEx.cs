@@ -1,58 +1,86 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 
 public static class MessageBoxEx
 {
-    private static IntPtr _ownerHandle;
-
-    public static MessageBoxResult Show(Window owner, string message, string caption,
+    public static MessageBoxResult Show(
+        Window owner,
+        string message,
+        string caption,
         MessageBoxButton buttons = MessageBoxButton.OK,
         MessageBoxImage icon = MessageBoxImage.None)
     {
-        _ownerHandle = new System.Windows.Interop.WindowInteropHelper(owner).Handle;
+        var ownerHandle = new WindowInteropHelper(owner).Handle;
 
-        var hook = new Win32WindowHook();
-        hook.CenterNextMessageBoxOn(_ownerHandle);
-
-        return MessageBox.Show(owner, message, caption, buttons, icon);
+        using (var hook = new Win32MessageBoxCenterHook(ownerHandle))
+        {
+            // This is still a normal, blocking WPF MessageBox.Show – just centered.
+            return MessageBox.Show(owner, message, caption, buttons, icon);
+        }
     }
 }
 
-internal class Win32WindowHook
+internal sealed class Win32MessageBoxCenterHook : IDisposable
 {
-    private IntPtr _owner;
+    private readonly IntPtr _owner;
+    private readonly WinEventDelegate _callback;
+    private readonly IntPtr _hookHandle;
 
-    public void CenterNextMessageBoxOn(IntPtr owner)
+    public Win32MessageBoxCenterHook(IntPtr owner)
     {
         _owner = owner;
-        System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
-            new Action(() =>
-            {
-                var callback = new WinEventDelegate(WinEventProc);
-                SetWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_SHOW, IntPtr.Zero,
-                    callback, 0, 0, WINEVENT_OUTOFCONTEXT);
-            }),
-            System.Windows.Threading.DispatcherPriority.Background);
+
+        // Keep delegate alive
+        _callback = WinEventProc;
+
+        // Hook only OBJECT_SHOW events, out-of-context
+        _hookHandle = SetWinEventHook(
+            EVENT_OBJECT_SHOW,
+            EVENT_OBJECT_SHOW,
+            IntPtr.Zero,
+            _callback,
+            0,
+            0,
+            WINEVENT_OUTOFCONTEXT);
     }
 
-    private void WinEventProc(IntPtr hWinEventHook, uint eventType,
-        IntPtr hwnd, int idObject, int idChild, uint idThread, uint time)
+    private void WinEventProc(
+        IntPtr hWinEventHook,
+        uint eventType,
+        IntPtr hwnd,
+        int idObject,
+        int idChild,
+        uint idThread,
+        uint time)
     {
-        // Only reposition actual message boxes (class name "#32770")
-        var classText = new string('\0', 256);
-        GetClassName(hwnd, classText, 256);
-        if (!classText.Contains("#32770")) return;
+        // Only reposition common dialog/message box windows (class "#32770")
+        var className = new string('\0', 256);
+        GetClassName(hwnd, className, className.Length);
 
-        CenterWindow(hwnd, _owner);
+        if (!className.Contains("#32770"))
+            return;
+
+        CenterWindowOnOwner(hwnd, _owner);
+
+        // Unhook after we centered the first message box
+        if (_hookHandle != IntPtr.Zero)
+        {
+            UnhookWinEvent(_hookHandle);
+        }
     }
 
-    private static void CenterWindow(IntPtr child, IntPtr parent)
+    private static void CenterWindowOnOwner(IntPtr child, IntPtr parent)
     {
-        RECT parentRect;
-        RECT childRect;
-        GetWindowRect(parent, out parentRect);
-        GetWindowRect(child, out childRect);
+        if (parent == IntPtr.Zero)
+            return;
+
+        if (!GetWindowRect(parent, out var parentRect))
+            return;
+
+        if (!GetWindowRect(child, out var childRect))
+            return;
 
         int width = childRect.Right - childRect.Left;
         int height = childRect.Bottom - childRect.Top;
@@ -63,27 +91,64 @@ internal class Win32WindowHook
         SetWindowPos(child, IntPtr.Zero, newLeft, newTop, width, height, 0);
     }
 
-    // Win32 imports
-    private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType,
-        IntPtr hwnd, int idObject, int idChild, uint idThread, uint time);
+    public void Dispose()
+    {
+        if (_hookHandle != IntPtr.Zero)
+        {
+            UnhookWinEvent(_hookHandle);
+        }
+        // delegate is instance field; GC can collect it after dispose
+    }
+
+    // ---- Win32 interop ----
+
+    private delegate void WinEventDelegate(
+        IntPtr hWinEventHook,
+        uint eventType,
+        IntPtr hwnd,
+        int idObject,
+        int idChild,
+        uint idThread,
+        uint time);
 
     private const uint EVENT_OBJECT_SHOW = 0x8002;
     private const uint WINEVENT_OUTOFCONTEXT = 0;
 
     [DllImport("user32.dll")]
-    static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc,
-        WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+    private static extern IntPtr SetWinEventHook(
+        uint eventMin,
+        uint eventMax,
+        IntPtr hmodWinEventProc,
+        WinEventDelegate lpfnWinEventProc,
+        uint idProcess,
+        uint idThread,
+        uint dwFlags);
 
     [DllImport("user32.dll")]
-    static extern int GetClassName(IntPtr hWnd, string lpClassName, int nMaxCount);
+    private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(
+        IntPtr hWnd,
+        string lpClassName,
+        int nMaxCount);
 
     [DllImport("user32.dll", SetLastError = true)]
-    static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+    private static extern bool GetWindowRect(
+        IntPtr hwnd,
+        out RECT lpRect);
 
     [DllImport("user32.dll")]
-    static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
-        int X, int Y, int cx, int cy, uint uFlags);
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int X,
+        int Y,
+        int cx,
+        int cy,
+        uint uFlags);
 
+    [StructLayout(LayoutKind.Sequential)]
     internal struct RECT
     {
         public int Left, Top, Right, Bottom;
