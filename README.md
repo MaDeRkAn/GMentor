@@ -31,7 +31,7 @@ Runs locally and uses your own AI key; your data never leaves your PC except for
 ## 🚀 Getting Started
 
 1. **Download (Windows)**  
-   👉 **Latest:** https://github.com/MaDeRkAn/GMentor/releases/download/1.0.2/GMentor-1.0.2.zip
+   👉 **Latest:** https://github.com/MaDeRkAn/GMentor/releases/latest/download/GMentor.zip
    > You may see a SmartScreen warning because GMentor is a new app.  
    > Click **“More info” → “Run anyway”**.
 
