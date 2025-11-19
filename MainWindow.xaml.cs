@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using GMentor.Core;
+using GMentor.Models;
+using GMentor.Services;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
-using GMentor.Core;
-using System.Windows.Documents;
 using System.Windows.Media;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Media.Animation;
-using GMentor.Models;
-using GMentor.Services;
 
 namespace GMentor
 {
@@ -75,7 +73,7 @@ namespace GMentor
             var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
             LblModel.Text = savedModel;
 
-            LblKey.Text = _keyStore.TryLoad("Gemini") != null ? "•••• saved" : "not set";
+            LblKey.Text = _keyStore.TryLoad("Gemini") != null ? "•••• " + LocalizationService.T("Text.Saved") : LocalizationService.T("Text.NotSet");
             UpdateGameLabel("General"); // shows "Game: Default"
 
             // Tray
@@ -178,10 +176,10 @@ namespace GMentor
         {
             var display = string.IsNullOrWhiteSpace(packGameName)
                           || packGameName.Equals("General", StringComparison.OrdinalIgnoreCase)
-                ? "Default"
+                ? LocalizationService.T("Text.Default")
                 : packGameName;
 
-            LblGameChip.Text = $"Game: {display}";
+            LblGameChip.Text = LocalizationService.T("Text.Game") + $": {display}";
         }
 
         private void FlashGameChip()
@@ -246,7 +244,7 @@ namespace GMentor
             }
 
             if (lines.Count == 0)
-                lines.Add("No shortcuts for this game.");
+                lines.Add(LocalizationService.T("Text.NoShortcuts"));
 
             ShortcutsList.ItemsSource = lines;
 
@@ -368,7 +366,7 @@ namespace GMentor
             {
                 Hide();
                 // Keep classic tray balloon only here.
-                _tray.ShowBalloon("GMentor is running in the tray.\nUse the shortcuts shown in the app to analyze.");
+                _tray.ShowBalloon(LocalizationService.T("Text.MiminizedMessage"));
             }
         }
 
@@ -409,19 +407,19 @@ namespace GMentor
             {
                 if ((DateTime.UtcNow - _lastRequestUtc) < TimeSpan.FromSeconds(2))
                 {
-                    StatusText.Text = "Cooldown…";
+                    StatusText.Text = LocalizationService.T("Status.Cooldown");
                     return;
                 }
 
                 // Clear old content up-front to avoid confusion
-                ResetUiForNewRequest(status: "Capture a region…");
+                ResetUiForNewRequest(status: LocalizationService.T("Status.CaptureRegion"));
 
                 // Capture before bringing our window to front; also sample the active window title
                 var rawTitleBefore = Services.ScreenCaptureService.TryDetectGameWindowTitle() ?? "";
                 RememberNonSelfTitle(rawTitleBefore);
 
                 var bmp = Services.ScreenCaptureService.CaptureInteractiveRegion(this);
-                if (bmp == null) { StatusText.Text = "Canceled"; return; }
+                if (bmp == null) { StatusText.Text = LocalizationService.T("Status.Canceled"); return; }
 
                 // Now we can safely show our window
                 ShowAndActivate();
@@ -435,9 +433,12 @@ namespace GMentor
                 if (string.IsNullOrWhiteSpace(key))
                 {
                     RestoreUiAfterRequest();
-                    MessageBoxEx.Show(this,
-                         "You need an API key.\nGo: File → Change Provider/Key…",
-                         "Missing key", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBoxEx.Show(
+                        this,
+                        LocalizationService.T("Dialog.MissingKey.Body"),
+                        LocalizationService.T("Dialog.MissingKey.Title"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                     return;
                 }
 
@@ -453,7 +454,7 @@ namespace GMentor
                 var imgHash = imgLen > 0 ? Services.StructuredLogger.Sha256Hex(_lastImage) : null;
                 _logger.LogOutbound(new { provider, model, game, category = uiCategory, prompt, image_len = imgLen, image_sha256 = imgHash });
 
-                StatusText.Text = $"Talking to the AI…";
+                StatusText.Text = LocalizationService.T("Status.TalkingToAI");
 
                 var client = ProviderRouter.Create(provider, model, key!, _http);
                 var started = DateTime.UtcNow;
@@ -486,7 +487,7 @@ namespace GMentor
                 RenderResponseMarkdown(text);
 
                 _lastRequestUtc = DateTime.UtcNow;
-                StatusText.Text = $"Done in {resp.Latency.TotalMilliseconds:F0} ms";
+                StatusText.Text = $"{LocalizationService.T("Status.DoneIn")} {resp.Latency.TotalMilliseconds:F0} ms";
 
                 // Enable actions now that content is present
                 CopyBtn.IsEnabled = true;
@@ -501,50 +502,58 @@ namespace GMentor
                 switch (ex.HttpCode)
                 {
                     case 503:
-                        StatusText.Text = "Provider overloaded.";
-                        MessageBoxEx.Show(this,
-                             "Gemini is overloaded right now.\n\n" +
-                             "It’s not your key and not your request. The model is at capacity.",
-                             "AI Model Overloaded (503)", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        StatusText.Text = LocalizationService.T("Status.ProviderOverloaded");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.ProviderOverloaded.Body"),
+                            LocalizationService.T("Dialog.ProviderOverloaded.Title"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
                         break;
 
                     case 429:
-                        StatusText.Text = "Free-tier limit reached.";
-                        MessageBoxEx.Show(this,
-                             "You've hit the usage limits for this model.\n\n" +
-                             "Action required:\n" +
-                             "• Switch to another Gemini model in File → Change Provider/Key…\n" +
-                             "• Or check your usage here:\n" +
-                             "   https://aistudio.google.com/app/usage?timeRange=last-28-days",
-                             "Rate Limit (429)",
-                             MessageBoxButton.OK,
-                             MessageBoxImage.Warning);
+                        StatusText.Text = LocalizationService.T("Status.RateLimit");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.RateLimit.Body"),
+                            LocalizationService.T("Dialog.RateLimit.Title"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
 
                         TryOpen(GoogleUsageUrl);
                         break;
 
                     case 401:
                     case 403:
-                        StatusText.Text = "Auth failed.";
-                        MessageBoxEx.Show(this,
-                             "Auth error from Gemini.\n\n" +
-                             "Double-check your API key in File → Change Provider/Key…",
-                             $"Auth Error ({ex.HttpCode})", MessageBoxButton.OK, MessageBoxImage.Error);
+                        StatusText.Text = LocalizationService.T("Status.AuthFailed");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.AuthError.Body"),
+                            $"{LocalizationService.T("Dialog.AuthError.Title")} ({ex.HttpCode})",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
                         break;
 
                     case 408:
                     case 504:
-                        StatusText.Text = "AI timed out.";
-                        MessageBoxEx.Show(this,
-                             "The AI didn’t respond in time.\nTry the shortcut again from the same screen crop.",
-                             $"Timeout ({ex.HttpCode})", MessageBoxButton.OK, MessageBoxImage.Information);
+                        StatusText.Text = LocalizationService.T("Status.Timeout");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.Timeout.Body"),
+                            $"{LocalizationService.T("Dialog.Timeout.Title")} ({ex.HttpCode})",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
                         break;
 
                     default:
-                        StatusText.Text = "AI error.";
-                        MessageBoxEx.Show(this,
-                             $"The AI returned an error ({ex.HttpCode} {ex.ApiStatus}).\n\n{ex.ApiMessage}",
-                             "AI Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        StatusText.Text = LocalizationService.T("Status.GenericError");
+                        var details = $"{ex.HttpCode} {ex.ApiStatus}.\n\n{ex.ApiMessage}";
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.TWith("Dialog.AIError.Body", "{DETAILS}", details),
+                            LocalizationService.T("Dialog.AIError.Title"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
                         break;
                 }
             }
@@ -553,11 +562,14 @@ namespace GMentor
                 ResponseBox.Document.Blocks.Clear();
                 BadgeSearch.Visibility = Visibility.Collapsed;
 
-                StatusText.Text = "Free-tier limit reached.";
-                MessageBoxEx.Show(this,
-                     "You’ve likely hit the free-tier per-minute or per-day cap.\n\n" +
-                     "Check your usage here:\nhttps://aistudio.google.com/app/usage?timeRange=last-28-days",
-                     "Rate Limit (429)", MessageBoxButton.OK, MessageBoxImage.Warning);
+                StatusText.Text = LocalizationService.T("Status.RateLimit");
+                MessageBoxEx.Show(
+                    this,
+                    LocalizationService.T("Dialog.RateLimit.Http.Body"),
+                    LocalizationService.T("Dialog.RateLimit.Title"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
                 TryOpen(GoogleUsageUrl);
             }
             catch (TaskCanceledException)
@@ -565,9 +577,13 @@ namespace GMentor
                 ResponseBox.Document.Blocks.Clear();
                 BadgeSearch.Visibility = Visibility.Collapsed;
 
-                StatusText.Text = "Request canceled/timeout.";
-                MessageBoxEx.Show(this, "The request was canceled or timed out.\nTry the shortcut again.",
-                     "Timeout", MessageBoxButton.OK, MessageBoxImage.Information);
+                StatusText.Text = LocalizationService.T("Status.RequestCanceled");
+                MessageBoxEx.Show(
+                    this,
+                    LocalizationService.T("Dialog.RequestCanceled.Body"),
+                    LocalizationService.T("Dialog.Timeout.Title"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -575,9 +591,13 @@ namespace GMentor
                 BadgeSearch.Visibility = Visibility.Collapsed;
 
                 Debug.WriteLine(ex);
-                StatusText.Text = "Something went wrong.";
-                MessageBoxEx.Show(this, "The request failed. Double-check your key/model and try again.",
-                     "Request error", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusText.Text = LocalizationService.T("Status.GenericError");
+                MessageBoxEx.Show(
+                    this,
+                    LocalizationService.T("Dialog.RequestError.Body"),
+                    LocalizationService.T("Dialog.RequestError.Title"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
             finally
             {
@@ -726,13 +746,13 @@ namespace GMentor
             var w = new SetupWindow();
             if (w.ShowDialog() == true)
             {
-                LblKey.Text = _keyStore.TryLoad("Gemini") != null ? "•••• saved" : "not set";
+                LblKey.Text = _keyStore.TryLoad("Gemini") != null ? $"•••• {LocalizationService.T("Text.Saved")}" : LocalizationService.T("Text.NotSet");
 
                 // refresh model from store
                 var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
                 LblModel.Text = savedModel;
 
-                StatusText.Text = "Provider/model updated.";
+                StatusText.Text = LocalizationService.T("Status.ProviderModelUpdated");
             }
         }
 
@@ -740,16 +760,12 @@ namespace GMentor
 
         private void OpenHowTo()
         {
-            var msg =
-                "How to use GMentor\n" +
-                "------------------\n" +
-                "1) Open your game and go to the screen you want analyzed.\n" +
-                "2) Press a shortcut and drag a box over that area.\n" +
-                "3) Shortcuts change depending on the detected game – check the “Shortcuts” bar in the app.\n" +
-                "\n" +
-                "You can minimize GMentor — it keeps running in the tray and hotkeys stay active.";
-
-            MessageBoxEx.Show(this, msg, "How to use GMentor", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBoxEx.Show(
+                this,
+                LocalizationService.T("Help.HowTo.Body"),
+                LocalizationService.T("Help.HowTo.Title"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
 
         private void OnHelpHowTo(object sender, RoutedEventArgs e) => OpenHowTo();
@@ -758,13 +774,14 @@ namespace GMentor
 
         private void OnHelpPrivacy(object sender, RoutedEventArgs e)
         {
-            MessageBoxEx.Show(this,
-                 "Privacy:\n\n" +
-                 "• Your API key stays on your PC (encrypted with Windows).\n" +
-                 "• GMentor never proxies your key or requests.\n" +
-                 "• Only the crop you select is sent straight to the AI provider.",
-                 "Privacy", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBoxEx.Show(
+                this,
+                LocalizationService.T("Help.Privacy.Body"),
+                LocalizationService.T("Help.Privacy.Title"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
+
 
         private void OnCopy(object sender, RoutedEventArgs e)
         {
@@ -778,11 +795,81 @@ namespace GMentor
             var q = _lastYouTubeQuery ?? ResultParser.SynthesizeYouTubeQueryFrom(plainText);
             if (string.IsNullOrWhiteSpace(q))
             {
-                MessageBoxEx.Show(this, "No tutorial query yet—run a request first.", "No query",
-                     MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBoxEx.Show(
+                    this,
+                    LocalizationService.T("Help.NoQuery.Body"),
+                    LocalizationService.T("Help.NoQuery.Title"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
             TryOpen($"https://www.youtube.com/results?search_query={Uri.EscapeDataString(q)}");
+        }
+
+
+        private void OnAppMenuClick(object sender, RoutedEventArgs e)
+        {
+            var btn = (Button)sender;
+
+            var ctx = new ContextMenu
+            {
+                PlacementTarget = btn,
+                Placement = PlacementMode.Bottom,
+                StaysOpen = false
+            };
+
+            // “Language” header
+            var languageRoot = new MenuItem
+            {
+                Header = LocalizationService.T("Menu.Language")
+            };
+
+            // English
+            var enItem = new MenuItem
+            {
+                Header = LocalizationService.T("Menu.Language.En"),
+                Tag = "en",
+                IsCheckable = true,
+                IsChecked = string.Equals(LocalizationService.CurrentLanguage, "en", StringComparison.OrdinalIgnoreCase)
+            };
+            enItem.Click += OnLanguageClick;
+
+            // Turkish
+            var trItem = new MenuItem
+            {
+                Header = LocalizationService.T("Menu.Language.Tr"),
+                Tag = "tr",
+                IsCheckable = true,
+                IsChecked = string.Equals(LocalizationService.CurrentLanguage, "tr", StringComparison.OrdinalIgnoreCase)
+            };
+            trItem.Click += OnLanguageClick;
+
+            languageRoot.Items.Add(enItem);
+            languageRoot.Items.Add(trItem);
+
+            ctx.Items.Add(languageRoot);
+            ctx.IsOpen = true;
+        }
+
+        private void OnLanguageClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem mi && mi.Tag is string code && !string.IsNullOrWhiteSpace(code))
+            {
+                ChangeLanguage(code);
+            }
+        }
+
+
+        private void ChangeLanguage(string code)
+        {
+            AppSettings.SaveLanguage(code);
+            LocalizationService.Load(code);
+
+            MessageBox.Show(
+                LocalizationService.T("Dialog.LanguageChanged.Body"),
+                LocalizationService.T("Dialog.LanguageChanged.Title"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }

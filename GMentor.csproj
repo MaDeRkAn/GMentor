@@ -52,4 +52,13 @@
     </Resource>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Localization\strings.en.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Localization\strings.tr.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

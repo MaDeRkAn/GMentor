@@ -84,6 +84,7 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
             var sb = new StringBuilder();
             sb.AppendLine("You help gamers by analyzing screenshots and returning concise, verified, game-specific answers.");
             sb.AppendLine($"Game: {gameName}");
+            // Prompt stays English – we use the pack label or the ID, not the localized UI label
             sb.AppendLine($"Category: {(!string.IsNullOrWhiteSpace(cat.Label) ? cat.Label.Trim() : catId)}");
             sb.AppendLine();
             sb.AppendLine((cat.Template ?? string.Empty).Trim());
@@ -105,11 +106,22 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
                 pack = ResolvePack_NoLock(rawGameWindowTitle) ?? _packs.GetValueOrDefault("General");
             }
 
-            var list = pack?.Categories.Select(kv => new ShortcutCapability
+            // Localize shortcut labels via Category.<Id> if available
+            var list = pack?.Categories.Select(kv =>
             {
-                Id = kv.Key,                                                // dynamic ID
-                Label = string.IsNullOrWhiteSpace(kv.Value.Label) ? kv.Key : kv.Value.Label.Trim(),
-                HotkeyText = kv.Value.Hotkey ?? string.Empty
+                var id = kv.Key;
+                var packLabel = string.IsNullOrWhiteSpace(kv.Value.Label) ? id : kv.Value.Label.Trim();
+
+                var key = $"Category.{id}";
+                var localized = LocalizationService.T(key);
+                var finalLabel = localized == key ? packLabel : localized;
+
+                return new ShortcutCapability
+                {
+                    Id = id,                       // dynamic ID
+                    Label = finalLabel,            // localized for UI if possible
+                    HotkeyText = kv.Value.Hotkey ?? string.Empty
+                };
             }).ToList();
 
             // Fallback for the "General" case when no pack exists yet
@@ -118,10 +130,30 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
                 GameName = pack?.GameId ?? "General",
                 Shortcuts = list ?? new List<ShortcutCapability>
                 {
-                    new() { Id = CatQuest, Label = "Quest / Mission", HotkeyText = "Ctrl+Alt+Q" },
-                    new() { Id = CatGun,   Label = "Gun / Mods",      HotkeyText = "Ctrl+Alt+G" },
-                    new() { Id = CatLoot,  Label = "Loot / Item",     HotkeyText = "Ctrl+Alt+L" },
-                    new() { Id = CatKeys,  Label = "Keys / Cards",    HotkeyText = "Ctrl+Alt+K" }
+                    new()
+                    {
+                        Id = CatQuest,
+                        Label = LocalizedCategoryLabel(CatQuest, "Quest / Mission"),
+                        HotkeyText = "Ctrl+Alt+Q"
+                    },
+                    new()
+                    {
+                        Id = CatGun,
+                        Label = LocalizedCategoryLabel(CatGun, "Gun / Mods"),
+                        HotkeyText = "Ctrl+Alt+G"
+                    },
+                    new()
+                    {
+                        Id = CatLoot,
+                        Label = LocalizedCategoryLabel(CatLoot, "Loot / Item"),
+                        HotkeyText = "Ctrl+Alt+L"
+                    },
+                    new()
+                    {
+                        Id = CatKeys,
+                        Label = LocalizedCategoryLabel(CatKeys, "Keys / Cards"),
+                        HotkeyText = "Ctrl+Alt+K"
+                    }
                 }
             };
         }
@@ -233,8 +265,6 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
             var m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
             return m.Success ? m.Groups["val"].Value.Trim() : null;
         }
-
-
 
         // ---------------- internals ----------------
 
@@ -421,6 +451,14 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
             {
                 return false;
             }
+        }
+
+        // ---- helpers ----
+        private static string LocalizedCategoryLabel(string id, string fallback)
+        {
+            var key = $"Category.{id}";
+            var localized = LocalizationService.T(key);
+            return localized == key ? fallback : localized;
         }
     }
 }

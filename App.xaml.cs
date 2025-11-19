@@ -1,4 +1,5 @@
 ﻿using GMentor.Services;
+using System;
 using System.Windows;
 
 namespace GMentor
@@ -14,6 +15,27 @@ namespace GMentor
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             base.OnStartup(e);
+
+            var lang = AppSettings.TryGetLanguage();
+            if (string.IsNullOrWhiteSpace(lang))
+            {
+                var langWindow = new LanguageWindow();
+                var result = langWindow.ShowDialog();
+
+                if (result == true)
+                {
+                    lang = langWindow.SelectedLanguageCode;
+                    AppSettings.SaveLanguage(lang);
+                }
+                else
+                {
+                    // User bailed out; default to English
+                    lang = "en";
+                    AppSettings.SaveLanguage(lang);
+                }
+            }
+
+            LocalizationService.Load(lang!);
 
             var store = new Services.SecureKeyStore("GMentor");
             var existingKey = store.TryLoad("Gemini");

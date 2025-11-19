@@ -1,10 +1,12 @@
 ﻿<Window x:Class="GMentor.SetupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:services="clr-namespace:GMentor.Services"
         Title="GMentor — Connect AI"
-        Height="480" Width="720"
+        Height="540" Width="720"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None" ResizeMode="NoResize"
+        WindowStyle="None"
+        ResizeMode="NoResize"
         Background="#0B1220">
 
     <!-- ===== Theme ===== -->
@@ -27,11 +29,13 @@
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="14"/>
         </Style>
+
         <Style x:Key="H1" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Text1}"/>
             <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
+
         <Style x:Key="Muted" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource Text2}"/>
             <Setter Property="FontSize" Value="12"/>
@@ -54,7 +58,8 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}">
                             <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" Margin="8,2"/>
+                                              VerticalAlignment="Center"
+                                              Margin="8,2"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsEnabled" Value="False">
@@ -109,30 +114,39 @@
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="8" Grid.ColumnSpan="2">
+                                    CornerRadius="8"
+                                    Grid.ColumnSpan="2">
                                 <ContentPresenter Margin="8,2,28,2"
                                                   VerticalAlignment="Center"
                                                   Content="{TemplateBinding SelectionBoxItem}"/>
                             </Border>
 
                             <ToggleButton x:Name="DropBtn"
-                                          Grid.Column="1" Focusable="False"
-                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Grid.Column="1"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen,
+                                                              RelativeSource={RelativeSource TemplatedParent},
+                                                              Mode=TwoWay}"
                                           Background="{StaticResource Chip}"
                                           BorderBrush="{StaticResource CardBorder}"
                                           BorderThickness="0">
-                                <Path Data="M 0 0 L 4 4 L 8 0 Z" Stretch="Uniform"
-                                      Width="10" Height="10" Fill="{StaticResource Text2}"/>
+                                <Path Data="M 0 0 L 4 4 L 8 0 Z"
+                                      Stretch="Uniform"
+                                      Width="10" Height="10"
+                                      Fill="{StaticResource Text2}"/>
                             </ToggleButton>
 
                             <Popup x:Name="PART_Popup"
                                    Placement="Bottom"
                                    IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   AllowsTransparency="True" Focusable="False"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
                                    PopupAnimation="Fade">
                                 <Border Background="{StaticResource Panel}"
                                         BorderBrush="{StaticResource CardBorder}"
-                                        BorderThickness="1" CornerRadius="8" Padding="4">
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="4">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                                   MinWidth="{Binding ActualWidth, ElementName=Bd}">
                                         <ItemsPresenter/>
@@ -152,16 +166,23 @@
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ComboBoxItem">
-                                    <Border x:Name="ItemBd" Background="{TemplateBinding Background}"
-                                            CornerRadius="6" Padding="4" Margin="2">
+                                    <Border x:Name="ItemBd"
+                                            Background="{TemplateBinding Background}"
+                                            CornerRadius="6"
+                                            Padding="4"
+                                            Margin="2">
                                         <ContentPresenter/>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsHighlighted" Value="True">
-                                            <Setter TargetName="ItemBd" Property="Background" Value="{StaticResource Chip}"/>
+                                            <Setter TargetName="ItemBd"
+                                                    Property="Background"
+                                                    Value="{StaticResource Chip}"/>
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="ItemBd" Property="Background" Value="{StaticResource Accent}"/>
+                                            <Setter TargetName="ItemBd"
+                                                    Property="Background"
+                                                    Value="{StaticResource Accent}"/>
                                             <Setter Property="Foreground" Value="White"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
@@ -175,7 +196,7 @@
     </Window.Resources>
 
     <!-- ===== Layout ===== -->
-    <Grid Background="{StaticResource Surface}" Margin="0,0,0,-10">
+    <Grid Background="{StaticResource Surface}">
         <Grid.RowDefinitions>
             <RowDefinition Height="42"/>
             <RowDefinition Height="*"/>
@@ -184,41 +205,61 @@
 
         <!-- Title bar: X locked to top-right -->
         <Grid Grid.Row="0"
-      Background="{StaticResource Panel}"
-      MouseLeftButtonDown="OnTitleBarDrag">
+              Background="{StaticResource Panel}"
+              MouseLeftButtonDown="OnTitleBarDrag">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                <Image Source="assets/gmentor.ico" Width="16" Height="16" Margin="0,0,8,0"/>
-                <TextBlock Text="GMentor — Connect AI" Foreground="{StaticResource Text1}" />
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="12,0,0,0">
+                <Image Source="assets/gmentor.ico"
+                       Width="16" Height="16"
+                       Margin="0,0,8,0"/>
+                <TextBlock Text="{services:L Setup.TitleBar}"
+                           Foreground="{StaticResource Text1}"/>
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
-                <Button Content="✕" Width="34" Height="28"
-                Background="{StaticResource Chip}" Foreground="{StaticResource Text1}"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
-                Click="OnCloseClick"/>
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center"
+                        Margin="0,0,6,0">
+                <Button Content="✕"
+                        Width="34" Height="28"
+                        Background="{StaticResource Chip}"
+                        Foreground="{StaticResource Text1}"
+                        BorderBrush="{StaticResource CardBorder}"
+                        BorderThickness="1"
+                        Click="OnCloseClick"/>
             </StackPanel>
         </Grid>
 
         <!-- Body -->
-        <Grid Grid.Row="1" Margin="16">
+        <Grid Grid.Row="1" Margin="16,16,16,24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource CardPanel}" Padding="10" Margin="0,0,0,12">
+            <!-- Header card -->
+            <Border Style="{StaticResource CardPanel}"
+                    Padding="10"
+                    Margin="0,0,0,12">
                 <DockPanel LastChildFill="False">
-                    <TextBlock Text="Plug in your AI key" Style="{StaticResource H1}" DockPanel.Dock="Left"/>
-                    <Border Background="{StaticResource Chip}" BorderBrush="{StaticResource CardBorder}"
-                            BorderThickness="1" CornerRadius="14" Padding="10,6" Margin="10,0,0,0"
+                    <TextBlock Text="{services:L Setup.Header}"
+                               Style="{StaticResource H1}"
+                               DockPanel.Dock="Left"/>
+                    <Border Background="{StaticResource Chip}"
+                            BorderBrush="{StaticResource CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="14"
+                            Padding="10,6"
+                            Margin="10,0,0,0"
                             DockPanel.Dock="Left">
                         <TextBlock Foreground="{StaticResource Text2}"
-                                   Text="We never see your key — calls go straight from your PC to Gemini."/>
+                                   Text="{services:L Setup.HeaderChip}"/>
                     </Border>
                 </DockPanel>
             </Border>
@@ -233,16 +274,22 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Provider" Foreground="{StaticResource Text2}" Margin="2,0,0,6"/>
-                        <ComboBox x:Name="ProviderCombo" Style="{StaticResource ComboDark}" SelectedIndex="0">
+                        <TextBlock Text="{services:L Setup.ProviderLabel}"
+                                   Foreground="{StaticResource Text2}"
+                                   Margin="2,0,0,6"/>
+                        <ComboBox x:Name="ProviderCombo"
+                                  Style="{StaticResource ComboDark}"
+                                  SelectedIndex="0">
                             <ComboBoxItem Content="Gemini"/>
                         </ComboBox>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="Model" Foreground="{StaticResource Text2}" Margin="2,0,0,6"/>
-                        <!-- Enabled so it matches the theme; today there’s one option -->
-                        <ComboBox x:Name="ModelCombo" Style="{StaticResource ComboDark}">
+                        <TextBlock Text="{services:L Setup.ModelLabel}"
+                                   Foreground="{StaticResource Text2}"
+                                   Margin="2,0,0,6"/>
+                        <ComboBox x:Name="ModelCombo"
+                                  Style="{StaticResource ComboDark}">
                             <ComboBoxItem Content="gemini-2.5-flash"/>
                             <ComboBoxItem Content="gemini-2.5-pro"/>
                             <ComboBoxItem Content="gemini-2.5-flash-lite"/>
@@ -259,40 +306,65 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="API Key" Foreground="{StaticResource Text2}" Margin="2,0,0,6"/>
-                        <PasswordBox x:Name="KeyBox" Style="{StaticResource DarkPasswordBox}"/>
+                        <TextBlock Text="{services:L Setup.ApiKeyLabel}"
+                                   Foreground="{StaticResource Text2}"
+                                   Margin="2,0,0,6"/>
+                        <PasswordBox x:Name="KeyBox"
+                                     Style="{StaticResource DarkPasswordBox}"/>
                     </StackPanel>
 
-                    <Button x:Name="BtnTest" Grid.Column="2" Content="Test" Style="{StaticResource PrimaryBtn}"
-                            Margin="0,24,0,0" Click="OnTest"/>
+                    <Button x:Name="BtnTest"
+                            Grid.Column="2"
+                            Content="{services:L Setup.TestButton}"
+                            Style="{StaticResource PrimaryBtn}"
+                            Margin="0,24,0,0"
+                            Click="OnTest"/>
                 </Grid>
 
-                <CheckBox x:Name="RememberKey" Margin="0,12,0,0"
-                          Foreground="{StaticResource Text2}" Content="Remember this key on this PC"/>
+                <CheckBox x:Name="RememberKey"
+                          Margin="0,12,0,0"
+                          Foreground="{StaticResource Text2}"
+                          Content="{services:L Setup.RememberKey}"/>
 
-                <TextBlock x:Name="Status" Margin="0,8,0,0" Foreground="{StaticResource Text2}"/>
+                <TextBlock x:Name="Status"
+                           Margin="0,8,0,0"
+                           Foreground="{StaticResource Text2}"/>
 
                 <!-- Help -->
-                <Border Style="{StaticResource CardPanel}" Margin="0,14,0,0">
+                <Border Style="{StaticResource CardPanel}"
+                        Margin="0,14,0,0"
+                        Padding="14,14,14,30"
+                        MinHeight="150">
                     <StackPanel>
-                        <TextBlock Text="No key yet? Two-minute setup:" Style="{StaticResource H1}" Margin="0,0,0,10"/>
-                        <StackPanel Orientation="Vertical" Margin="0,4,0,0">
+                        <TextBlock Text="{services:L Setup.HelpHeader}"
+                                   Style="{StaticResource H1}"
+                                   Margin="0,0,0,10"/>
+                        <StackPanel Orientation="Vertical"
+                                    Margin="0,4,0,0">
                             <TextBlock Foreground="{StaticResource Text1}">
-                                <Run Text="1) Create a free Google AI Studio account → "/>
-                                <Hyperlink NavigateUri="https://aistudio.google.com/app/apikey" RequestNavigate="OnLink">
-                                    Get Gemini API Key
+                                <Run Text="{services:L Setup.Step1Prefix}"/>
+                                <Hyperlink NavigateUri="https://aistudio.google.com/app/apikey"
+                                           RequestNavigate="OnLink">
+                                    <Run Text="{services:L Setup.Step1Link}"/>
                                 </Hyperlink>
                             </TextBlock>
-                            <TextBlock Foreground="{StaticResource Text1}" Margin="0,6,0,0">
-                                <Run Text="2) Check your usage/limits → "/>
-                                <Hyperlink NavigateUri="https://aistudio.google.com/app/usage?timeRange=last-28-days" RequestNavigate="OnLink">
-                                    Usage Dashboard
+
+                            <TextBlock Foreground="{StaticResource Text1}"
+                                       Margin="0,6,0,0">
+                                <Run Text="{services:L Setup.Step2Prefix}"/>
+                                <Hyperlink NavigateUri="https://aistudio.google.com/app/usage?timeRange=last-28-days"
+                                           RequestNavigate="OnLink">
+                                    <Run Text="{services:L Setup.Step2Link}"/>
                                 </Hyperlink>
                             </TextBlock>
-                            <TextBlock Margin="0,10,0,0" Style="{StaticResource Muted}" TextWrapping="Wrap">
-                                GMentor never sees your API key — it stays on your PC. Only the crop you select is
-                                sent straight to the AI.
-                            </TextBlock>
+
+                            <TextBlock Margin="0,10,0,12"
+                                       Style="{StaticResource Muted}"
+                                       TextWrapping="Wrap"
+                                       Text="{services:L Setup.PrivacyNote}"/>
+
+                            <!-- Extra spacer so text is not glued to footer -->
+                            <Rectangle Height="10"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -300,10 +372,24 @@
         </Grid>
 
         <!-- Footer -->
-        <Border Grid.Row="2" Background="{StaticResource Panel}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1,1,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="12">
-                <Button x:Name="BtnCancel" Content="Cancel" Style="{StaticResource GhostBtn}" Click="OnCancel" Margin="0,0,8,0"/>
-                <Button x:Name="BtnContinue" Content="Continue" Style="{StaticResource PrimaryBtn}" IsEnabled="False" Click="OnContinue"/>
+        <Border Grid.Row="2"
+                Background="{StaticResource Panel}"
+                BorderBrush="{StaticResource CardBorder}"
+                BorderThickness="1,1,0,0"
+                Padding="12,10">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="12,0,0,0">
+                <Button x:Name="BtnCancel"
+                        Content="{services:L Setup.Cancel}"
+                        Style="{StaticResource GhostBtn}"
+                        Click="OnCancel"
+                        Margin="0,0,8,0"/>
+                <Button x:Name="BtnContinue"
+                        Content="{services:L Setup.Continue}"
+                        Style="{StaticResource PrimaryBtn}"
+                        IsEnabled="False"
+                        Click="OnContinue"/>
             </StackPanel>
         </Border>
     </Grid>

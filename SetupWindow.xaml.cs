@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
+using GMentor.Services;
 
 namespace GMentor
 {
@@ -29,11 +30,11 @@ namespace GMentor
                 KeyBox.Password = savedKey;
                 RememberKey.IsChecked = true;
                 BtnContinue.IsEnabled = true;
-                Status.Text = "Saved key loaded — you can Continue.";
+                Status.Text = LocalizationService.T("Setup.Status.SavedKeyLoaded");
             }
             else
             {
-                Status.Text = "Enter your API key first.";
+                Status.Text = LocalizationService.T("Setup.Status.EnterKeyFirst");
             }
         }
 
@@ -123,14 +124,14 @@ namespace GMentor
             // Optimistic UI: show we're working and lock buttons
             BtnTest.IsEnabled = false;
             BtnContinue.IsEnabled = false;
-            Status.Text = "Checking key…";
+            Status.Text = LocalizationService.T("Setup.Status.CheckingKey");
 
             try
             {
                 var key = KeyBox.Password?.Trim();
                 if (string.IsNullOrWhiteSpace(key))
                 {
-                    Status.Text = "Enter a key to test.";
+                    Status.Text = LocalizationService.T("Setup.Status.EnterKeyToTest");
                     return;
                 }
 
@@ -139,7 +140,7 @@ namespace GMentor
                 // Simple ping via existing router
                 await Core.ProviderRouter.TestAsync("Gemini", model, key!, _http, this);
 
-                Status.Text = $"Key looks good for {model}.";
+                Status.Text = LocalizationService.TWith("Setup.Status.KeyOk", "{MODEL}", model);
                 BtnContinue.IsEnabled = true;
 
                 if (RememberKey.IsChecked == true)
@@ -150,7 +151,7 @@ namespace GMentor
             }
             catch
             {
-                Status.Text = "Test failed. Check the key/model and try again.";
+                Status.Text = LocalizationService.T("Setup.Status.TestFailed");
                 BtnContinue.IsEnabled = false;
             }
             finally
@@ -159,7 +160,6 @@ namespace GMentor
             }
         }
 
-
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
 
         private void OnContinue(object sender, RoutedEventArgs e)
@@ -167,7 +167,7 @@ namespace GMentor
             var key = KeyBox.Password?.Trim();
             if (string.IsNullOrWhiteSpace(key))
             {
-                Status.Text = "Enter your API key first.";
+                Status.Text = LocalizationService.T("Setup.Status.EnterKeyFirst");
                 return;
             }
 
