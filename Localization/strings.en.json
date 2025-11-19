@@ -100,6 +100,7 @@
   "Setup.Status.KeyOk": "Key looks good for {MODEL}.",
   "Setup.Status.TestFailed": "Test failed. Check the key/model and try again.",
 
+  "Category.ArcEnemy": "ARC / Enemy",
   "Category.Quest": "Quest",
   "Category.GunMods": "Gun Mods",
   "Category.LootItem": "Loot / Item",

@@ -69,32 +69,39 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
             // snapshot under lock; render string outside the lock
             PromptPack? pack;
             string catId;
+            PackCategory? cat = null;
 
             lock (_gate)
             {
                 pack = ResolvePack_NoLock(rawGameWindowTitle) ?? _packs.GetValueOrDefault("General");
                 catId = MapCategory(category); // legacy mapping only; dynamic IDs pass through unchanged
+
+                if (pack is not null && pack.Categories.TryGetValue(catId, out var tmp))
+                    cat = tmp;
             }
 
             var gameName = pack?.GameId ?? "General";
 
-            if (pack == null || !pack.Categories.TryGetValue(catId, out var cat))
+            // No category template – header-only prompt (still shaped by language)
+            if (cat is null)
                 return ComposeHeaderOnly(gameName, catId, ocrSnippet);
 
+            var langCode = GetUiLanguageCode();
+            var categoryLabel = !string.IsNullOrWhiteSpace(cat.Label)
+                ? cat.Label.Trim()
+                : catId;
+
             var sb = new StringBuilder();
-            sb.AppendLine("You help gamers by analyzing screenshots and returning concise, verified, game-specific answers.");
-            sb.AppendLine($"Game: {gameName}");
-            // Prompt stays English – we use the pack label or the ID, not the localized UI label
-            sb.AppendLine($"Category: {(!string.IsNullOrWhiteSpace(cat.Label) ? cat.Label.Trim() : catId)}");
-            sb.AppendLine();
+
+            // Language-aware header (Option C)
+            AppendLanguageHeader(sb, gameName, categoryLabel, langCode);
+
+            // Original English template from the pack (kept as-is)
             sb.AppendLine((cat.Template ?? string.Empty).Trim());
 
-            if (!string.IsNullOrWhiteSpace(ocrSnippet))
-            {
-                var trimmed = ocrSnippet!.Length <= 200 ? ocrSnippet : ocrSnippet[..200];
-                sb.AppendLine();
-                sb.AppendLine($"OCR: \"{trimmed}\"");
-            }
+            // OCR snippet if available
+            AppendOcrSnippet(sb, ocrSnippet);
+
             return sb.ToString();
         }
 
@@ -410,15 +417,9 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
         private static string ComposeHeaderOnly(string game, string mappedCategory, string? ocr)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("You help gamers by analyzing screenshots and returning concise, verified, game-specific answers.");
-            sb.AppendLine($"Game: {game}");
-            sb.AppendLine($"Category: {mappedCategory}");
-            if (!string.IsNullOrWhiteSpace(ocr))
-            {
-                var t = ocr!.Length <= 200 ? ocr : ocr[..200];
-                sb.AppendLine();
-                sb.AppendLine($"OCR: \"{t}\"");
-            }
+            var langCode = GetUiLanguageCode();
+            AppendLanguageHeader(sb, game, mappedCategory, langCode);
+            AppendOcrSnippet(sb, ocr);
             return sb.ToString();
         }
 
@@ -454,11 +455,69 @@ Y38WB/SecuXzvMZEBHaZN39g16nB/P67KHuRbAaqZ3HyE2eiWSNRdV+S0g==
         }
 
         // ---- helpers ----
+
         private static string LocalizedCategoryLabel(string id, string fallback)
         {
             var key = $"Category.{id}";
             var localized = LocalizationService.T(key);
             return localized == key ? fallback : localized;
+        }
+
+        /// <summary>
+        /// Determine UI language code for prompt shaping.
+        /// Wire this to your real language store (AppSettings / LocalizationService).
+        /// </summary>
+        private static string GetUiLanguageCode()
+        {
+            try
+            {
+                // If your getter is different, adjust here.
+                var code = AppSettings.TryGetLanguage(); // e.g., "en", "tr", "tr-TR"
+                if (string.IsNullOrWhiteSpace(code))
+                    return "en";
+
+                code = code.Trim().ToLowerInvariant();
+                return code.StartsWith("tr") ? "tr" : "en";
+            }
+            catch
+            {
+                return "en";
+            }
+        }
+
+        private static void AppendLanguageHeader(StringBuilder sb, string gameName, string categoryLabel, string langCode)
+        {
+            sb.AppendLine("You help gamers by analyzing screenshots and returning concise, verified, game-specific answers.");
+            sb.AppendLine($"Game: {gameName}");
+            sb.AppendLine($"Category: {categoryLabel}");
+            sb.AppendLine();
+
+            if (langCode.Equals("tr", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.AppendLine("User interface language: Turkish (tr-TR).");
+                sb.AppendLine("Write the answer in **Turkish** for all explanations, notes and tips.");
+                sb.AppendLine("However:");
+                sb.AppendLine("- Keep all bold field labels from the template (for example **Quest:**, **Trader:**, **Map:**, **Item:**, **Weapon:**, **Armor class:**) in English.");
+                sb.AppendLine("- Only translate the text after each colon.");
+                sb.AppendLine("- Keep item names, weapon names, map names and key names in their original in-game language.");
+                sb.AppendLine("- If you output a line starting with `YOUTUBE_QUERY:`, always write that query in English.");
+                sb.AppendLine();
+            }
+            else
+            {
+                sb.AppendLine("User interface language: English (en-US). Write the answer in English.");
+                sb.AppendLine();
+            }
+        }
+
+        private static void AppendOcrSnippet(StringBuilder sb, string? ocr)
+        {
+            if (!string.IsNullOrWhiteSpace(ocr))
+            {
+                var t = ocr!.Length <= 200 ? ocr : ocr[..200];
+                sb.AppendLine();
+                sb.AppendLine($"OCR: \"{t}\"");
+            }
         }
     }
 }

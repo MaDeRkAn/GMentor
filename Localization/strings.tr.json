@@ -101,6 +101,7 @@
   "Setup.Status.KeyOk": "Anahtar {MODEL} için geçerli görünüyor.",
   "Setup.Status.TestFailed": "Test başarısız oldu. Anahtarı/modeli kontrol edip tekrar dene.",
 
+  "Category.ArcEnemy": "ARC / Düşman",
   "Category.Quest": "Görev",
   "Category.GunMods": "Silah Modları",
   "Category.LootItem": "Ganimet / Eşya",

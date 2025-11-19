@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace GMentor.Core
 {
@@ -9,7 +10,11 @@ namespace GMentor.Core
 
         private static readonly string[] HedgeTokens =
         {
-            "not sure","uncertain","maybe","might","unknown","i think","could be"
+            // English
+            "not sure","uncertain","maybe","might","unknown","i think","could be",
+            // Turkish
+            "emin değilim","emin degilim","tam emin değil","tam emin degil",
+            "kesin değil","kesin degil","belki","olabilir","net değil","net degil"
         };
 
         public static string? TryExtractYouTubeQuery(string text)
