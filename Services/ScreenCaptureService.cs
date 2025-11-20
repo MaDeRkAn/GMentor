@@ -21,13 +21,24 @@ namespace GMentor.Services
 
         /// <summary>
         /// Captures a frozen full-screen image and opens the crop overlay.
+        /// Temporarily releases any global mouse clipping (e.g. from games like EFT)
+        /// so the cursor doesn't feel "stuck" when the overlay appears.
         /// </summary>
         public static Bitmap? CaptureInteractiveRegion(System.Windows.Window owner)
         {
             using var full = CaptureFullVirtualScreen();
-            var overlay = new CropWindow(full);
-            overlay.Owner = owner;
-            return overlay.ShowDialog() == true ? overlay.CroppedBitmap : null;
+
+            // Temporarily unclip the cursor (if a game clipped it)
+            BeginUnclipCursor();
+            try
+            {
+                var overlay = new CropWindow(full) { Owner = owner };
+                return overlay.ShowDialog() == true ? overlay.CroppedBitmap : null;
+            }
+            finally
+            {
+                RestoreCursorClip();
+            }
         }
 
         /// <summary>
@@ -84,6 +95,74 @@ namespace GMentor.Services
                 var sb = new System.Text.StringBuilder(512);
                 _ = GetWindowText(hwnd, sb, sb.Capacity);
                 return sb.ToString();
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Mouse clipping handling (for games that call ClipCursor)
+        // ---------------------------------------------------------------------
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetClipCursor(out RECT lpRect);
+
+        // Overload: restore a specific clip rectangle
+        [DllImport("user32.dll")]
+        private static extern bool ClipCursor(ref RECT lpRect);
+
+        // Overload: pass IntPtr.Zero to free the cursor (no clipping)
+        [DllImport("user32.dll")]
+        private static extern bool ClipCursor(IntPtr lpRect);
+
+        private static bool _hadClip;
+        private static RECT _previousClip;
+
+        /// <summary>
+        /// If some app (like EFT) has clipped the cursor, remember the clip and
+        /// temporarily free it so the user can move the mouse on our overlay.
+        /// </summary>
+        private static void BeginUnclipCursor()
+        {
+            try
+            {
+                _hadClip = GetClipCursor(out _previousClip);
+                // Even if _hadClip is false, calling ClipCursor(IntPtr.Zero) is safe.
+                ClipCursor(IntPtr.Zero); // unclip -> full desktop
+            }
+            catch
+            {
+                // Fail-safe: never throw from capture code because of cursor APIs
+                _hadClip = false;
+            }
+        }
+
+        /// <summary>
+        /// Restore the previous cursor clipping rectangle if there was one.
+        /// </summary>
+        private static void RestoreCursorClip()
+        {
+            try
+            {
+                if (_hadClip)
+                {
+                    ClipCursor(ref _previousClip);
+                }
+            }
+            catch
+            {
+                // Ignore restore failures; OS will leave cursor unclipped
+            }
+            finally
+            {
+                _hadClip = false;
             }
         }
     }
