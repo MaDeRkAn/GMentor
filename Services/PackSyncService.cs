@@ -6,13 +6,15 @@ using System.Text.Json;
 namespace GMentor.Services
 {
     /// <summary>
-    /// Fetches {baseUrl}/index.json and syncs packs into %AppData%\GMentor\packs.
+    /// Fetches {baseUrl}/index.json and syncs packs into %AppData%\GMentor\packs
+    /// and localization packs into %AppData%\GMentor\Localization.
     /// If 'period' is TimeSpan.Zero, no background timer is created (single-shot mode).
     /// </summary>
     public sealed class PackSyncService : IDisposable
     {
         private readonly HttpClient _http;
-        private readonly string _userDir;
+        private readonly string _userDir;   // game packs
+        private readonly string _locDir;    // localization packs
         private readonly StructuredLogger _log = new("GMentor");
         private readonly string _indexUrl;
         private readonly Timer? _timer;
@@ -25,8 +27,13 @@ namespace GMentor.Services
             _indexUrl = baseUrl.TrimEnd('/') + "/index.json";
             _period = period ?? TimeSpan.FromHours(6);
             _http = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-            _userDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "GMentor", "packs");
+
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            _userDir = Path.Combine(appData, "GMentor", "packs");
+            _locDir = Path.Combine(appData, "GMentor", "Localization");
+
             Directory.CreateDirectory(_userDir);
+            Directory.CreateDirectory(_locDir);
 
             // If period == TimeSpan.Zero => single-shot, no timer.
             if (_period > TimeSpan.Zero)
@@ -40,7 +47,10 @@ namespace GMentor.Services
         private async Task SafeRun()
         {
             try { await RunOnce(); }
-            catch { /* best effort */ }
+            catch
+            {
+                // best effort; avoid crashing caller
+            }
         }
 
         private async Task RunOnce()
@@ -50,33 +60,67 @@ namespace GMentor.Services
             var json = await resp.Content.ReadAsStringAsync();
 
             var index = JsonSerializer.Deserialize<PackIndex>(
-    json,
-    new JsonSerializerOptions
-    {
-        PropertyNameCaseInsensitive = true
-    });
-            if (index?.Packs == null || index.Packs.Count == 0) return;
+                json,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            if (index == null)
+                return;
 
             bool changed = false;
-            foreach (var p in index.Packs)
+
+            // ---- GAME PACKS ----
+            if (index.Packs is { Count: > 0 })
             {
-                var localPath = Path.Combine(_userDir, p.Name + ".gpack");
-                var localSig = Path.Combine(_userDir, p.Name + ".sig");
+                var updated = await SyncEntriesAsync(index.Packs, _userDir);
+                if (updated) changed = true;
+            }
+
+            // ---- LOCALIZATION PACKS ----
+            if (index.Localization is { Count: > 0 })
+            {
+                var updated = await SyncEntriesAsync(index.Localization, _locDir);
+                if (updated) changed = true;
+            }
+
+            if (changed)
+                PacksChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Syncs a list of entries (game packs or localization) into a target directory.
+        /// Downloads only when SHA differs.
+        /// </summary>
+        private async Task<bool> SyncEntriesAsync(
+            IList<PackIndexItem> entries,
+            string targetDir)
+        {
+            bool changed = false;
+
+            foreach (var p in entries)
+            {
+                var localPath = Path.Combine(targetDir, p.Name + ".gpack");
+                var localSig = Path.Combine(targetDir, p.Name + ".sig");
 
                 if (File.Exists(localPath))
                 {
                     var okSha = VerifySha256(localPath, p.Sha256);
-                    if (okSha) continue;
+                    if (okSha)
+                        continue;
                 }
 
                 var tmpData = Path.GetTempFileName();
                 var tmpSig = Path.GetTempFileName();
+
                 try
                 {
                     await DownloadTo(p.Url, tmpData);
                     await DownloadTo(p.SigUrl, tmpSig);
 
-                    if (!VerifySha256(tmpData, p.Sha256)) continue;
+                    if (!VerifySha256(tmpData, p.Sha256))
+                        continue;
 
                     var dataBytes = await File.ReadAllBytesAsync(tmpData);
                     var sigB64 = (await File.ReadAllTextAsync(tmpSig)).Trim();
@@ -93,7 +137,7 @@ namespace GMentor.Services
                 }
             }
 
-            if (changed) PacksChanged?.Invoke(this, EventArgs.Empty);
+            return changed;
         }
 
         private async Task DownloadTo(string url, string targetPath)
@@ -110,19 +154,35 @@ namespace GMentor.Services
                 using var fs = File.OpenRead(filePath);
                 var hash = sha.ComputeHash(fs);
                 var hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                return string.Equals(hex,
+                return string.Equals(
+                    hex,
                     expectedHex.Replace("0x", "", StringComparison.OrdinalIgnoreCase).ToLowerInvariant(),
                     StringComparison.OrdinalIgnoreCase);
             }
-            catch { return false; }
+            catch
+            {
+                return false;
+            }
         }
 
-        private static void TryDelete(string p) { try { if (File.Exists(p)) File.Delete(p); } catch { } }
+        private static void TryDelete(string p)
+        {
+            try
+            {
+                if (File.Exists(p))
+                    File.Delete(p);
+            }
+            catch { }
+        }
 
         private sealed class PackIndex
         {
             public List<PackIndexItem> Packs { get; set; } = new();
+
+            // NEW: localization entries like strings.en / strings.tr
+            public List<PackIndexItem>? Localization { get; set; }
         }
+
         private sealed class PackIndexItem
         {
             public string Name { get; set; } = "";

@@ -11,39 +11,63 @@ namespace GMentor.Services
         public static string CurrentLanguage { get; private set; } = "en";
 
         /// <summary>
-        /// Load a language file like "Localization/strings.en.json".
-        /// Falls back to built-in English if file not found or parse fails.
+        /// Load a language pack:
+        /// 1) %AppData%\GMentor\Localization\strings.<lang>.gpack  (downloaded)
+        /// 2) ./packs/Localization/strings.<lang>.gpack            (bundled with app)
+        /// Falls back to built-in English if nothing works.
         /// </summary>
         public static void Load(string languageCode)
         {
-            CurrentLanguage = languageCode ?? "en";
+            CurrentLanguage = string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode.Trim();
             _strings.Clear();
 
-            // Try external JSON file next to the EXE: ./Localization/strings.<lang>.json
-            var exeDir = AppContext.BaseDirectory;
-            var path = Path.Combine(exeDir, "Localization", $"strings.{CurrentLanguage}.json");
+            // 1) AppData localization (managed by PackSyncService)
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var appDataLocDir = Path.Combine(appData, "GMentor", "Localization");
+            var appDataGpack = Path.Combine(appDataLocDir, $"strings.{CurrentLanguage}.gpack");
 
+            if (TryLoadFromFile(appDataGpack))
+                return;
+
+            // 2) Bundled packs next to the EXE: ./packs/Localization/strings.<lang>.gpack
+            var exeDir = AppContext.BaseDirectory;
+            var exeLocDir = Path.Combine(exeDir, "packs", "Localization");
+            var exeGpack = Path.Combine(exeLocDir, $"strings.{CurrentLanguage}.gpack");
+
+            if (TryLoadFromFile(exeGpack))
+                return;
+
+            // 3) Fallback: built-in English defaults
+            LoadBuiltInEnglish();
+        }
+
+        /// <summary>
+        /// Tries to read JSON dictionary from the given .gpack path
+        /// and populate _strings. Returns true on success.
+        /// </summary>
+        private static bool TryLoadFromFile(string path)
+        {
             try
             {
-                if (File.Exists(path))
-                {
-                    var json = File.ReadAllText(path);
-                    var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                    if (dict is not null)
-                    {
-                        foreach (var kv in dict)
-                            _strings[kv.Key] = kv.Value;
-                        return;
-                    }
-                }
+                if (!File.Exists(path))
+                    return false;
+
+                var json = File.ReadAllText(path);
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                if (dict is null || dict.Count == 0)
+                    return false;
+
+                _strings.Clear();
+                foreach (var kv in dict)
+                    _strings[kv.Key] = kv.Value;
+
+                return true;
             }
             catch
             {
-                // Ignore and fall back to built-ins
+                // Malformed / incompatible file – treat as not found
+                return false;
             }
-
-            // Fallback: built-in English defaults
-            LoadBuiltInEnglish();
         }
 
         private static void LoadBuiltInEnglish()
@@ -140,6 +164,7 @@ namespace GMentor.Services
             _strings["Help.NoQuery.Body"] =
                 "No tutorial query yet—run a request first.";
 
+            // --- Menu / language ---
             _strings["Menu.App"] = "GMentor";
             _strings["Menu.Language"] = "Language";
             _strings["Menu.Language.En"] = "English (Recommended)";
@@ -151,10 +176,6 @@ namespace GMentor.Services
         public static string T(string key)
             => _strings.TryGetValue(key, out var value) ? value : key;
 
-        /// <summary>
-        /// Simple helper when we need to inject details into a localized template.
-        /// Example: Replace {DETAILS} placeholder.
-        /// </summary>
         public static string TWith(string key, string placeholder, string value)
         {
             var s = T(key);

@@ -1,0 +1,55 @@
+﻿{
+  "gameId": "Rust",
+  "version": "1.0.0",
+  "matchers": [ "rust", "rust client" ],
+  "categories": {
+    "ItemRecycle": {
+      "label": "Item / Component / Recycle",
+      "hotkey": "Ctrl+Alt+L",
+      "template": "You are helping a Rust player decide what to do with an item or component from an inventory/loot screen.\nSearch: REQUIRED. Prefer rust.fandom.com/wiki (items, components, monuments) and rustlabs.com (items, recycling, scrap values).\n\nRULES:\n- Use only real Rust items and components.\n- If you are not 100% sure of the item name from the screenshot, say \"Item name not fully clear\" and base your answer on the best match.\n\nOutput:\n**Item:** <Exact name or Unknown>\n**Category:** <Component | Resource | Weapon part | Tool | Medical | Food | Misc>\n**Used for:** <Important crafts/uses; short>\n**Recycle returns:** <Scrap + main materials; list or \"None\">\n**Best use:** <Keep for crafts | Research then craft | Recycle for scrap | Sell/trade | Only keep early game>\n**Value tier:** <Low | Mid | High | Very high> — <1 short reason>",
+      "ytTemplate": "{Game} <Item> recycle or keep"
+    },
+
+    "Monument": {
+      "label": "Monument / Location",
+      "hotkey": "Ctrl+Alt+M",
+      "template": "From the screenshot, identify the Rust monument or area and give a simple summary.\nSearch: REQUIRED. Prefer rust.fandom.com/wiki (monuments) and rustlabs.com (monuments, loot) and MapGenie Rust for layout context.\n\nRULES:\n- If you are not confident about the exact monument, say \"Looks like <best guess>\" and mention uncertainty.\n- Use only known monuments and locations from trusted sources.\n\nOutput:\n**Monument / area:** <Name or Unknown>\n**Map type:** <Procedural Map | Custom Map | Unknown>\n**Loot tier:** <Low | Mid | High> — <short reason>\n**Keycards / fuses:** <What colors/fuses are needed here, if any>\n**Hazards:** <Radiation | NPCs | Turrets | Traps | None>\n**Why come here:** <1–3 short points: loot, cards, recycler, safe paths, etc.>\n**Quick route tip:** <1–2 short lines using visible buildings/roads to describe how to move through or around this monument safely>",
+      "ytTemplate": "{Game} <Monument> monument guide"
+    },
+
+    "WeaponBuild": {
+      "label": "Weapon / Attachments",
+      "hotkey": "Ctrl+Alt+G",
+      "template": "You are helping a Rust player configure a weapon from a screenshot (inventory or inspect view).\nSearch: REQUIRED. Prefer rust.fandom.com/wiki (weapons, attachments) and rustlabs.com (weapons, recoil, attachments, DPS).\n\nRULES:\n- Use only real Rust weapons, ammo types, and attachments.\n- If something is unclear in the screenshot, say \"Not clear from screenshot\" instead of guessing.\n- Keep builds simple and practical for real gameplay (no meme setups).\n\nOutput:\n**Weapon:** <Base name>\n**Ammo type:** <Best recommended ammo or options>\n**Role:** <Spray | Tap fire | Close quarters | Mid-range | Long-range | Eco | Other>\n**Build goal:** <1 short line>\n\n**Recommended setup:**\n- Sight: <Attachment or \"Iron sights\"> — <short reason>\n- Barrel/Muzzle: <Attachment or \"None\"> — <short reason>\n- Underbarrel/Grip/Stock: <Attachment or \"None\"> — <short reason>\n- Ammo: <Best ammo; mention if expensive>\n\n**Notes:** <1–2 short lines on recoil, range, or when this build shines>",
+      "ytTemplate": "{Game} <Weapon> best attachments"
+    },
+
+    "RaidCost": {
+      "label": "Raid Cost (Approx)",
+      "hotkey": "Ctrl+Alt+R",
+      "template": "You are helping a Rust player estimate raid cost from a screenshot showing a door, wall, or building piece.\nSearch: REQUIRED. Prefer rust.fandom.com/wiki (building blocks, doors, raid) and rustlabs.com/raid (or equivalent raid cost pages).\n\nRULES:\n- First, identify the main raid target (e.g., sheet metal door, garage door, armored wall, stone wall, etc.).\n- Use standard vanilla Rust raid values.\n- Always treat results as approximate: mention that exact numbers can change with server settings.\n- If unsure about the exact tier, say \"Not sure, looks like <best guess>\" and keep numbers approximate.\n\nOutput:\n**Target:** <e.g., Sheet metal door, Armored wall, Garage door>\n**Best tools (vanilla):** <Short list: C4, rockets, satchels, explosive ammo>\n**Approx raid cost (vanilla):**\n- C4: <count or \"Not ideal\">\n- Rockets: <count or \"Not ideal\">\n- Satchels: <count>\n- Explosive 5.56: <approx number of shots>\n\n**Practical advice:** <1–2 short lines, e.g. \"Use rockets if you are hitting multiple walls\" or \"Satchels are cheap but inconsistent.\">\n**Server warning:** <Mention that modded/5x servers can change raid costs significantly.>",
+      "ytTemplate": "{Game} raid cost <Target>"
+    },
+
+    "FarmingBiomes": {
+      "label": "Farming / Biomes / Nodes",
+      "hotkey": "Ctrl+Alt+F",
+      "template": "You are helping a Rust player understand how good an area is for farming resources based on a screenshot of the map, terrain, or surroundings (biome, nodes, trees, roads, rivers, coast, etc.).\nSearch: REQUIRED. Prefer rust.fandom.com/wiki (Biomes, Ores, Resources) and rustlabs.com (nodes, resources, monuments) and MapGenie Rust for general layout examples.\n\nRULES:\n- Do NOT try to predict exact future node spawns.\n- Base your advice on typical biome/resource patterns and what is visible in the screenshot (forest, snow, desert, mountains, roads, rivers, coastline, etc.).\n\nOutput:\n**Biome / area:** <Forest | Snow | Desert | Mixed | Coast | Roadside | River | Mountain | Other>\n**Resources visible / typical here:** <Stone | Metal | Sulfur | Wood | Cloth | Animals | Barrels | Road loot; short list>\n**Best farming focus:** <What to farm here and why>\n**Suggested setup:** <Recommended tools/mounts (e.g., jackhammer, chainsaw, horse, minicopter) depending on area>\n**Tips:** <1–3 short tips on routes, bags, or nearby monuments to combine with farming>",
+      "ytTemplate": "{Game} farming guide <Biome / area>"
+    },
+
+    "BaseDesign": {
+      "label": "Base / Doors / Weak Spots",
+      "hotkey": "Ctrl+Alt+B",
+      "template": "You are giving general base design advice for Rust from an external screenshot of a base, door layout, or wall section.\nSearch: ALLOWED BUT OPTIONAL. You may use rust.fandom.com/wiki (Building, Bases, Raiding) and community guides for common patterns (2x2, 2x1, starter, bunker, compound).\n\nRULES:\n- Only comment on what can be reasonably inferred from the screenshot (door placement, honeycomb, roof access, shooting floors, external TCs, etc.).\n- DO NOT claim to know exact loot or TC locations.\n- Focus on generic strengths and weaknesses (e.g., \"single main door with no airlock\", \"no honeycomb on this side\").\n\nOutput:\n**Base type (approx):** <Starter | 2x1 | 2x2 | Small group base | Clan-style | Unknown>\n**Visible strengths:** <1–3 short points: honeycomb, roof control, shooting floors, external TCs, compound, etc.>\n**Visible weaknesses:** <1–3 short points: single door, weak roof access, exposed twig, no honeycomb on this side, no airlock, etc.>\n**Upgrade suggestions:**\n- <Short suggestion 1>\n- <Short suggestion 2>\n\n**Practical note:** <1 short line about how these changes help (e.g., \"harder to door-camp\", \"harder to offline with rockets on one side\").>",
+      "ytTemplate": "{Game} base design tips <Base type (approx)>"
+    },
+
+    "ToolsGathering": {
+      "label": "Tools / Gathering Efficiency",
+      "hotkey": "Ctrl+Alt+T",
+      "template": "You are helping a Rust player choose the best tools for gathering based on an inventory screenshot or item icons (pickaxes, hatchets, jackhammer, salvaged tools, chainsaw, etc.).\nSearch: REQUIRED. Prefer rust.fandom.com/wiki (Resources, Tools) and rustlabs.com (tools, hit points, gathering rates).\n\nOutput:\n**Main tools shown:** <List the relevant tools in the screenshot>\n**Best for nodes:** <Tool(s) for stone/metal/sulfur; mention jackhammer if relevant>\n**Best for trees:** <Tool(s) for wood; mention chainsaw if relevant>\n**Efficiency tips:** <1–3 short tips (e.g., hit the spark/mark on nodes, repair vs craft new, early vs late-game tools)>\n**Early / mid / late game recommendation:** <Short line on which tools to aim for at each stage>",
+      "ytTemplate": "{Game} best gathering tools <Main tools shown>"
+    }
+  }
+}

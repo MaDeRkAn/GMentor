@@ -53,10 +53,34 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Localization\strings.en.json">
+    <None Update="Packs\DayZ.gpack">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Localization\strings.tr.json">
+    <None Update="Packs\DayZ.sig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\EscapeFromTarkov.gpack">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\EscapeFromTarkov.sig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\Localization\strings.en.gpack">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\Localization\strings.en.sig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\Localization\strings.tr.gpack">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\Localization\strings.tr.sig">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\Rust.gpack">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Packs\Rust.sig">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
