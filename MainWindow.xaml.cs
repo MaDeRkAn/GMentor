@@ -42,6 +42,10 @@ namespace GMentor
         private readonly List<int> _registeredHotkeyIds = new();          // current OS registrations
         private readonly Dictionary<int, string> _hotkeyToCategory = new(); // hotkeyId -> categoryId
 
+        private string? _lastResponseText;
+        private static readonly Regex SectionHeaderRegex =
+            new(@"^\*\*(?<name>[^*]+)\*\*[:]?\s*", RegexOptions.Compiled);
+
         private GameDetector? _gameDetector;
 
         // ---- dynamic shortcuts cache for current game
@@ -483,8 +487,8 @@ namespace GMentor
 
                 BadgeSearch.Visibility = resp.UsedWebSearch ? Visibility.Visible : Visibility.Collapsed;
 
-                // Render markdown into the RichTextBox
-                RenderResponseMarkdown(text);
+                // Render markdown into collapsible sections
+                RenderResponseSections(text);
 
                 _lastRequestUtc = DateTime.UtcNow;
                 StatusText.Text = $"{LocalizationService.T("Status.DoneIn")} {resp.Latency.TotalMilliseconds:F0} ms";
@@ -496,8 +500,10 @@ namespace GMentor
             catch (LlmServiceException ex)
             {
                 // Keep the box empty for failed runs
-                ResponseBox.Document.Blocks.Clear();
+                ResponseSectionsPanel.Children.Clear();
+                _lastResponseText = null;
                 BadgeSearch.Visibility = Visibility.Collapsed;
+
 
                 switch (ex.HttpCode)
                 {
@@ -559,8 +565,10 @@ namespace GMentor
             }
             catch (HttpRequestException hre) when ((int?)hre.StatusCode == 429)
             {
-                ResponseBox.Document.Blocks.Clear();
+                ResponseSectionsPanel.Children.Clear();
+                _lastResponseText = null;
                 BadgeSearch.Visibility = Visibility.Collapsed;
+
 
                 StatusText.Text = LocalizationService.T("Status.RateLimit");
                 MessageBoxEx.Show(
@@ -574,8 +582,10 @@ namespace GMentor
             }
             catch (TaskCanceledException)
             {
-                ResponseBox.Document.Blocks.Clear();
+                ResponseSectionsPanel.Children.Clear();
+                _lastResponseText = null;
                 BadgeSearch.Visibility = Visibility.Collapsed;
+
 
                 StatusText.Text = LocalizationService.T("Status.RequestCanceled");
                 MessageBoxEx.Show(
@@ -587,8 +597,10 @@ namespace GMentor
             }
             catch (Exception ex)
             {
-                ResponseBox.Document.Blocks.Clear();
+                ResponseSectionsPanel.Children.Clear();
+                _lastResponseText = null;
                 BadgeSearch.Visibility = Visibility.Collapsed;
+
 
                 Debug.WriteLine(ex);
                 StatusText.Text = LocalizationService.T("Status.GenericError");
@@ -605,7 +617,68 @@ namespace GMentor
             }
         }
 
-        private void RenderResponseMarkdown(string raw)
+        private sealed record ParsedSection(string Header, string Body);
+
+        private static List<ParsedSection> SplitIntoSections(string raw)
+        {
+            var sections = new List<ParsedSection>();
+
+            string? currentHeader = null;
+            var buffer = new List<string>();
+
+            void Flush()
+            {
+                if (currentHeader != null && buffer.Count > 0)
+                {
+                    var body = string.Join("\n", buffer).Trim();
+                    if (!string.IsNullOrWhiteSpace(body))
+                        sections.Add(new ParsedSection(currentHeader, body));
+                }
+                buffer.Clear();
+            }
+
+            foreach (var originalLine in raw.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+            {
+                var line = originalLine ?? string.Empty;
+                var trimmed = line.TrimStart();
+
+                // Skip bullet headings - only treat non-bullet bold lines as section headers
+                if (!trimmed.StartsWith("-"))
+                {
+                    var m = SectionHeaderRegex.Match(trimmed);
+                    if (m.Success)
+                    {
+                        // Start a new section
+                        Flush();
+
+                        var header = m.Groups["name"].Value.Trim();
+                        if (header.EndsWith(":"))
+                            header = header.TrimEnd(':');
+
+                        currentHeader = header;
+
+                        // Anything after the bold header on the same line becomes first body line
+                        var remainder = trimmed[m.Value.Length..].Trim();
+                        if (!string.IsNullOrEmpty(remainder))
+                            buffer.Add(remainder);
+
+                        continue;
+                    }
+                }
+
+                buffer.Add(line);
+            }
+
+            Flush();
+
+            // If we failed to detect any sections, fall back to a single block
+            if (sections.Count == 0 && !string.IsNullOrWhiteSpace(raw))
+                sections.Add(new ParsedSection("Details", raw));
+
+            return sections;
+        }
+
+        private FlowDocument BuildMarkdownDocument(string text)
         {
             var doc = new FlowDocument
             {
@@ -613,13 +686,14 @@ namespace GMentor
                 FontFamily = new FontFamily("Consolas"),
                 FontSize = 13
             };
+
             var para = new Paragraph
             {
                 Margin = new Thickness(0, 0, 0, 6),
                 LineHeight = 18
             };
 
-            foreach (var line in raw.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+            foreach (var line in text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
             {
                 if (string.IsNullOrWhiteSpace(line))
                 {
@@ -628,11 +702,10 @@ namespace GMentor
                     continue;
                 }
 
-                string text = line;
-                var boldMatches = Regex.Split(text, @"(\*\*[^\*]+\*\*)");
+                var boldMatches = Regex.Split(line, @"(\*\*[^\*]+\*\*)");
                 foreach (var part in boldMatches)
                 {
-                    if (part.StartsWith("**") && part.EndsWith("**"))
+                    if (part.StartsWith("**") && part.EndsWith("**") && part.Length > 4)
                     {
                         para.Inlines.Add(new Bold(new Run(part.Trim('*'))));
                     }
@@ -646,8 +719,48 @@ namespace GMentor
             }
 
             doc.Blocks.Add(para);
-            ResponseBox.Document = doc;
+            return doc;
         }
+
+        private void RenderResponseSections(string raw)
+        {
+            _lastResponseText = raw;
+            ResponseSectionsPanel.Children.Clear();
+
+            var sections = SplitIntoSections(raw);
+
+            foreach (var section in sections)
+            {
+                var expander = new Expander
+                {
+                    Header = section.Header,
+                    IsExpanded = false,
+                    Margin = new Thickness(0, 0, 0, 6),
+                    Background = Brushes.Transparent,
+                    Foreground = Brushes.White
+                };
+
+                var box = new RichTextBox
+                {
+                    IsReadOnly = true,
+                    Background = new SolidColorBrush(Color.FromRgb(0x0F, 0x11, 0x16)),
+                    Foreground = Brushes.White,
+                    BorderThickness = new Thickness(0),
+                    Padding = new Thickness(8, 4, 8, 4),
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 13,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                    IsDocumentEnabled = true
+                };
+
+                box.Document = BuildMarkdownDocument(section.Body);
+                expander.Content = box;
+
+                ResponseSectionsPanel.Children.Add(expander);
+            }
+        }
+
 
         // ---- Title handling (don’t report “GMentor” as the game)
         private void RememberNonSelfTitle(string title)
@@ -695,22 +808,18 @@ namespace GMentor
         private void ResetUiForNewRequest(string status)
         {
             BadgeSearch.Visibility = Visibility.Collapsed;
-            ResponseBox.Document.Blocks.Clear();
-            ResponseBox.IsReadOnly = true;
-            ResponseBox.Opacity = 0.85;
+            ResponseSectionsPanel.Children.Clear();
+            _lastResponseText = null;
+
             CopyBtn.IsEnabled = false;
             OpenYouTubeBtn.IsEnabled = false;
             StatusText.Text = status;
         }
 
+
         private void RestoreUiAfterRequest()
         {
-            ResponseBox.IsReadOnly = false;
-            ResponseBox.Opacity = 1.0;
-
-            bool hasText = !string.IsNullOrWhiteSpace(new TextRange(
-                ResponseBox.Document.ContentStart,
-                ResponseBox.Document.ContentEnd).Text?.Trim());
+            bool hasText = !string.IsNullOrWhiteSpace(_lastResponseText);
 
             CopyBtn.IsEnabled = hasText;
             OpenYouTubeBtn.IsEnabled = hasText;
@@ -785,14 +894,15 @@ namespace GMentor
 
         private void OnCopy(object sender, RoutedEventArgs e)
         {
-            var text = new TextRange(ResponseBox.Document.ContentStart, ResponseBox.Document.ContentEnd).Text.Trim();
-            Clipboard.SetText(text);
+            if (!string.IsNullOrWhiteSpace(_lastResponseText))
+                Clipboard.SetText(_lastResponseText);
         }
 
         private void OnOpenYouTube(object sender, RoutedEventArgs e)
         {
-            var plainText = new TextRange(ResponseBox.Document.ContentStart, ResponseBox.Document.ContentEnd).Text;
-            var q = _lastYouTubeQuery ?? ResultParser.SynthesizeYouTubeQueryFrom(plainText);
+            var text = _lastResponseText ?? string.Empty;
+            var q = _lastYouTubeQuery ?? ResultParser.SynthesizeYouTubeQueryFrom(text);
+
             if (string.IsNullOrWhiteSpace(q))
             {
                 MessageBoxEx.Show(
@@ -803,7 +913,20 @@ namespace GMentor
                     MessageBoxImage.Information);
                 return;
             }
+
             TryOpen($"https://www.youtube.com/results?search_query={Uri.EscapeDataString(q)}");
+        }
+
+        private void OnExpandAllSections(object sender, RoutedEventArgs e)
+        {
+            foreach (var expander in ResponseSectionsPanel.Children.OfType<Expander>())
+                expander.IsExpanded = true;
+        }
+
+        private void OnCollapseAllSections(object sender, RoutedEventArgs e)
+        {
+            foreach (var expander in ResponseSectionsPanel.Children.OfType<Expander>())
+                expander.IsExpanded = false;
         }
 
 

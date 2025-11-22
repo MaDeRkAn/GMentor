@@ -464,6 +464,7 @@
                 </Border>
 
                 <!-- Response -->
+                <!-- Response -->
                 <Border Grid.Row="2" Style="{StaticResource CardPanel}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -471,32 +472,41 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
+                        <!-- Header row: title + Search badge + expand/collapse all -->
                         <DockPanel Grid.Row="0" LastChildFill="False">
                             <TextBlock Text="{services:L Text.Response}"
-                                       Style="{StaticResource SectionHeader}"
-                                       DockPanel.Dock="Left"/>
+                       Style="{StaticResource SectionHeader}"
+                       DockPanel.Dock="Left"/>
+
+                            <StackPanel Orientation="Horizontal"
+                        DockPanel.Dock="Right"
+                        VerticalAlignment="Center">
+                                <Button x:Name="ExpandAllBtn"
+                        Content="{services:L Text.ExpandAll}"
+                        Style="{StaticResource OutlineButton}"
+                        Margin="0,0,4,0"
+                        Click="OnExpandAllSections"/>
+                                <Button x:Name="CollapseAllBtn"
+                        Content="{services:L Text.CollapseAll}"
+                        Style="{StaticResource OutlineButton}"
+                        Click="OnCollapseAllSections"/>
+                            </StackPanel>
+
                             <TextBlock x:Name="BadgeSearch"
-                                       Text="{services:L Text.SearchBacked}"
-                                       Visibility="Collapsed"
-                                       Foreground="{StaticResource AccentBrush}"
-                                       FontWeight="SemiBold"
-                                       FontSize="14"
-                                       VerticalAlignment="Center"
-                                       Margin="8,0,0,0"/>
+                       Text="{services:L Text.SearchBacked}"
+                       Visibility="Collapsed"
+                       Foreground="{StaticResource AccentBrush}"
+                       FontWeight="SemiBold"
+                       FontSize="14"
+                       VerticalAlignment="Center"
+                       Margin="8,0,0,0"/>
                         </DockPanel>
 
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <RichTextBox x:Name="ResponseBox"
-                                         IsReadOnly="True"
-                                         Background="#0f1116"
-                                         Foreground="White"
-                                         BorderThickness="0"
-                                         Padding="8"
-                                         FontFamily="Consolas"
-                                         FontSize="15"
-                                         VerticalScrollBarVisibility="Auto"
-                                         HorizontalScrollBarVisibility="Disabled"
-                                         IsDocumentEnabled="True" />
+                        <!-- Sections list -->
+                        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="ResponseSectionsPanel"
+                        Margin="0,4,0,0"/>
                         </ScrollViewer>
                     </Grid>
                 </Border>

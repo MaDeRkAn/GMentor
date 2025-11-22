@@ -171,6 +171,9 @@ namespace GMentor.Services
             _strings["Menu.Language.Tr"] = "Türkçe";
             _strings["Dialog.LanguageChanged.Title"] = "Language updated";
             _strings["Dialog.LanguageChanged.Body"] = "Restart GMentor to see all texts in the new language.";
+            _strings["Text.ExpandAll"] = "Expand all";
+            _strings["Text.CollapseAll"] = "Collapse all";
+
         }
 
         public static string T(string key)
