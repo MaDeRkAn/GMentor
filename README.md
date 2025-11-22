@@ -12,7 +12,7 @@ Runs locally and uses your own AI key; your data never leaves your PC except for
   Works on *any* PC game. GMentor reads whatever is on your screen and generates fast, accurate guidance.
 
 - 🧩 **Enhanced support packs**  
-  Extra-deep prompts for **Arc Raiders** and **Escape From Tarkov** (quests, guns, items, extracts, ammo, armor, etc.).
+  Extra-deep prompts for **Arc Raiders**, **Escape From Tarkov**, **Rust**, **DayZ** (quests, guns, items, extracts, ammo, armor, etc.).
 
 - 🔫 **Weapons & builds**  
   Highlight your gun → get a clean build or mod recommendation tailored to the game.
