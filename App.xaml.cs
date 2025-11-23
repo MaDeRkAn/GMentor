@@ -1,5 +1,4 @@
 ﻿using GMentor.Services;
-using System;
 using System.Windows;
 
 namespace GMentor
@@ -9,6 +8,9 @@ namespace GMentor
         private PromptPackProvider? _packProvider;
         private PackSyncService? _packSync;
 
+        // so we don't spam the user with multiple popups
+        private bool _localizationReloadNotified;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             // Prevent WPF from auto-shutting down when the first window closes
@@ -16,6 +18,7 @@ namespace GMentor
 
             base.OnStartup(e);
 
+            // --- Language bootstrap ---
             var lang = AppSettings.TryGetLanguage();
             if (string.IsNullOrWhiteSpace(lang))
             {
@@ -35,9 +38,11 @@ namespace GMentor
                 }
             }
 
+            // Initial localization load (may be overridden later when packs sync)
             LocalizationService.Load(lang!);
 
-            var store = new Services.SecureKeyStore("GMentor");
+            // --- API key bootstrap ---
+            var store = new SecureKeyStore("GMentor");
             var existingKey = store.TryLoad("Gemini");
 
             // First-run: no key yet -> show setup dialog
@@ -54,24 +59,51 @@ namespace GMentor
                 }
             }
 
-            // Boot prompt pack provider (singleton)
+            // --- Prompt packs provider (singleton) ---
             _packProvider = new PromptPackProvider();
-            GMentor.Core.PromptComposer.Provider = _packProvider;
+            Core.PromptComposer.Provider = _packProvider;
 
-            // One-shot sync on startup (no background timer)
+            // --- One-shot sync on startup (no background timer) ---
             _packSync = new Services.PackSyncService(
                 baseUrl: "https://packs.gmentor.ai",
                 period: TimeSpan.Zero);
 
             _packSync.PacksChanged += (_, __) =>
             {
-                try { _packProvider?.Reload(); }
-                catch { /* best effort */ }
+                try
+                {
+                    // 1) Hot-reload game prompt packs
+                    _packProvider?.Reload();
+
+                    // 2) Hot-reload localization packs for the current language
+                    //    so newly downloaded strings.<lang>.gpack take effect
+                    LocalizationService.Load(LocalizationService.CurrentLanguage);
+
+                    // 3) Show the same “language updated” dialog once per session
+                    if (!_localizationReloadNotified)
+                    {
+                        _localizationReloadNotified = true;
+
+                        Current.Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show(
+                                LocalizationService.T("Dialog.LanguageChanged.Body"),
+                                LocalizationService.T("Dialog.LanguageChanged.Title"),
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+                        });
+                    }
+                }
+                catch
+                {
+                    // best effort – never crash the app on background sync
+                }
             };
 
-            _ = _packSync.CheckNowAsync();   // fire-and-forget
+            // Fire-and-forget initial sync
+            _ = _packSync.CheckNowAsync();
 
-            // Now create and show the real main window
+            // --- Create and show the main window ---
             var main = new MainWindow();
             MainWindow = main;
             main.Show();

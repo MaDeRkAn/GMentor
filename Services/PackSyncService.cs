@@ -15,7 +15,6 @@ namespace GMentor.Services
         private readonly HttpClient _http;
         private readonly string _userDir;   // game packs
         private readonly string _locDir;    // localization packs
-        private readonly StructuredLogger _log = new("GMentor");
         private readonly string _indexUrl;
         private readonly Timer? _timer;
         private readonly TimeSpan _period;
