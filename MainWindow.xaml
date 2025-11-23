@@ -489,6 +489,7 @@
                                 <Button x:Name="CollapseAllBtn"
                         Content="{services:L Text.CollapseAll}"
                         Style="{StaticResource OutlineButton}"
+                        Margin="0,0,4,0"
                         Click="OnCollapseAllSections"/>
                             </StackPanel>
 
