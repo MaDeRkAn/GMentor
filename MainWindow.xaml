@@ -99,6 +99,45 @@
             </Setter>
         </Style>
 
+        <!-- NEW: Primary CTA button (Donate) -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#0B1220"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="Margin" Value="0,10,0,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                                CornerRadius="10"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="10,4"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.92"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Chips -->
         <Style x:Key="Chip" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource ChipBrush}"/>
@@ -421,6 +460,22 @@
                         <Button Content="{services:L Text.HowToUse}"
                                 Click="OnHelpHowTo"
                                 Style="{StaticResource OutlineButton}"/>
+
+                        <!-- NEW: Donate CTA -->
+                        <Button x:Name="DonateBtn"
+                                Click="OnDonate"
+                                Style="{StaticResource PrimaryButton}"
+                                ToolTip="{services:L Text.DonateTooltip}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Width="16" Height="16"
+                                      Margin="0,0,8,0"
+                                      Stretch="Uniform"
+                                      Fill="#0B1220"
+                                      Data="M12 21s-7-4.35-10-8.28C-0.92 8.24 2.22 4 6.3 4c1.89 0 3.43 0.9 4.2 2.02C11.27 4.9 12.8 4 14.7 4c4.08 0 7.22 4.24 4.3 8.72C19 16.65 12 21 12 21z"/>
+                                <TextBlock Text="{services:L Text.Donate}" />
+                            </StackPanel>
+                        </Button>
+
                         <TextBlock Margin="0,10,0,0"
                                    Style="{StaticResource Muted}"
                                    TextWrapping="Wrap"
@@ -464,7 +519,6 @@
                 </Border>
 
                 <!-- Response -->
-                <!-- Response -->
                 <Border Grid.Row="2" Style="{StaticResource CardPanel}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -475,39 +529,39 @@
                         <!-- Header row: title + Search badge + expand/collapse all -->
                         <DockPanel Grid.Row="0" LastChildFill="False">
                             <TextBlock Text="{services:L Text.Response}"
-                       Style="{StaticResource SectionHeader}"
-                       DockPanel.Dock="Left"/>
+                                       Style="{StaticResource SectionHeader}"
+                                       DockPanel.Dock="Left"/>
 
                             <StackPanel Orientation="Horizontal"
-                        DockPanel.Dock="Right"
-                        VerticalAlignment="Center">
+                                        DockPanel.Dock="Right"
+                                        VerticalAlignment="Center">
                                 <Button x:Name="ExpandAllBtn"
-                        Content="{services:L Text.ExpandAll}"
-                        Style="{StaticResource OutlineButton}"
-                        Margin="0,0,4,0"
-                        Click="OnExpandAllSections"/>
+                                        Content="{services:L Text.ExpandAll}"
+                                        Style="{StaticResource OutlineButton}"
+                                        Margin="0,0,4,0"
+                                        Click="OnExpandAllSections"/>
                                 <Button x:Name="CollapseAllBtn"
-                        Content="{services:L Text.CollapseAll}"
-                        Style="{StaticResource OutlineButton}"
-                        Margin="0,0,4,0"
-                        Click="OnCollapseAllSections"/>
+                                        Content="{services:L Text.CollapseAll}"
+                                        Style="{StaticResource OutlineButton}"
+                                        Margin="0,0,4,0"
+                                        Click="OnCollapseAllSections"/>
                             </StackPanel>
 
                             <TextBlock x:Name="BadgeSearch"
-                       Text="{services:L Text.SearchBacked}"
-                       Visibility="Collapsed"
-                       Foreground="{StaticResource AccentBrush}"
-                       FontWeight="SemiBold"
-                       FontSize="14"
-                       VerticalAlignment="Center"
-                       Margin="8,0,0,0"/>
+                                       Text="{services:L Text.SearchBacked}"
+                                       Visibility="Collapsed"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,0,0"/>
                         </DockPanel>
 
                         <!-- Sections list -->
                         <ScrollViewer Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto">
+                                      VerticalScrollBarVisibility="Auto">
                             <StackPanel x:Name="ResponseSectionsPanel"
-                        Margin="0,4,0,0"/>
+                                        Margin="0,4,0,0"/>
                         </ScrollViewer>
                     </Grid>
                 </Border>

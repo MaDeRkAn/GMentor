@@ -34,13 +34,14 @@ namespace GMentor
         private GlobalHotkeyManager? _hotkeys;
         private readonly IAiAnalysisService _ai;
 
-
         private const string GoogleUsageUrl = "https://aistudio.google.com/app/usage?timeRange=last-28-days";
+
+        // NEW: Stripe donate link
+        private const string DonateUrl = "https://donate.stripe.com/6oUcN6els87m7TS1ZagjC00";
 
         // ---- hwnd + global hotkeys
         private HwndSource? _hwndSrc;
         private IntPtr _hwnd = IntPtr.Zero;
-
 
         private string? _lastResponseText;
 
@@ -75,11 +76,14 @@ namespace GMentor
             var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
             LblModel.Text = savedModel;
 
-            LblKey.Text = _keyStore.TryLoad("Gemini") != null ? "•••• " + LocalizationService.T("Text.Saved") : LocalizationService.T("Text.NotSet");
+            LblKey.Text = _keyStore.TryLoad("Gemini") != null
+                ? "•••• " + LocalizationService.T("Text.Saved")
+                : LocalizationService.T("Text.NotSet");
+
             UpdateGameLabel("General"); // shows "Game: Default"
 
             // Tray
-            _tray = new Services.TrayService(
+            _tray = new TrayService(
                 onOpen: () => Dispatcher.Invoke(ShowAndActivate),
                 onHelp: () => Dispatcher.Invoke(OpenHowTo),
                 onQuit: () => Dispatcher.Invoke(Close)
@@ -445,7 +449,7 @@ namespace GMentor
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ResetRunFlowState();
 
@@ -508,7 +512,6 @@ namespace GMentor
             }
         }
 
-
         // ---- Title handling (don’t report “GMentor” as the game)
         private void RememberNonSelfTitle(string title)
         {
@@ -546,7 +549,6 @@ namespace GMentor
             StatusText.Text = status;
         }
 
-
         private void RestoreUiAfterRequest()
         {
             bool hasText = !string.IsNullOrWhiteSpace(_lastResponseText);
@@ -567,7 +569,9 @@ namespace GMentor
             var w = new SetupWindow();
             if (w.ShowDialog() == true)
             {
-                LblKey.Text = _keyStore.TryLoad("Gemini") != null ? $"•••• {LocalizationService.T("Text.Saved")}" : LocalizationService.T("Text.NotSet");
+                LblKey.Text = _keyStore.TryLoad("Gemini") != null
+                    ? $"•••• {LocalizationService.T("Text.Saved")}"
+                    : LocalizationService.T("Text.NotSet");
 
                 // refresh model from store
                 var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
@@ -576,8 +580,6 @@ namespace GMentor
                 StatusText.Text = LocalizationService.T("Status.ProviderModelUpdated");
             }
         }
-
-        private void OnExit(object sender, RoutedEventArgs e) => Close();
 
         private void OpenHowTo()
         {
@@ -590,7 +592,6 @@ namespace GMentor
         }
 
         private void OnHelpHowTo(object sender, RoutedEventArgs e) => OpenHowTo();
-        private void OnHelpGetKey(object sender, RoutedEventArgs e) => TryOpen("https://aistudio.google.com/app/apikey");
         private void OnHelpUsage(object sender, RoutedEventArgs e) => TryOpen(GoogleUsageUrl);
 
         private void OnHelpPrivacy(object sender, RoutedEventArgs e)
@@ -602,7 +603,6 @@ namespace GMentor
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }
-
 
         private void OnCopy(object sender, RoutedEventArgs e)
         {
@@ -641,6 +641,11 @@ namespace GMentor
                 expander.IsExpanded = false;
         }
 
+        // NEW: Donate handler
+        private void OnDonate(object sender, RoutedEventArgs e)
+        {
+            TryOpen(DonateUrl);
+        }
 
         private void OnAppMenuClick(object sender, RoutedEventArgs e)
         {
@@ -693,7 +698,6 @@ namespace GMentor
                 ChangeLanguage(code);
             }
         }
-
 
         private void ChangeLanguage(string code)
         {
