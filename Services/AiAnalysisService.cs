@@ -38,7 +38,9 @@ namespace GMentor.Services
 
             var provider = "Gemini";
             var model = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
-            var key = _keyStore.TryLoad(provider);
+
+            // FIX: session key first, then persisted key
+            var key = SessionKeyStore.TryGet(provider) ?? _keyStore.TryLoad(provider);
 
             if (string.IsNullOrWhiteSpace(key))
                 throw new MissingKeyException();

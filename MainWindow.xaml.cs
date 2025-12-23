@@ -15,18 +15,15 @@ namespace GMentor
 {
     public partial class MainWindow : Window
     {
-        // ---- runtime state
         private DateTime _lastRequestUtc = DateTime.MinValue;
         private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(300) };
         private byte[]? _lastImage;
         private string? _lastYouTubeQuery;
-        private string? _lastNonSelfWindowTitle; // persist last non-GMentor window title
+        private string? _lastNonSelfWindowTitle;
 
-        // STICKY supported game (once detected, don't fall back to General until a new supported game appears)
-        private string? _stickyGameTitle; // raw window title as seen
-        private string? _stickyGameId;    // pack.GameId (e.g., "ArcRaiders")
+        private string? _stickyGameTitle;
+        private string? _stickyGameId;
 
-        // ---- services
         private readonly SecureKeyStore _keyStore = new("GMentor");
         private readonly StructuredLogger _logger = new("GMentor");
         private readonly TrayService _tray;
@@ -35,28 +32,21 @@ namespace GMentor
         private readonly IAiAnalysisService _ai;
 
         private const string GoogleUsageUrl = "https://aistudio.google.com/app/usage?timeRange=last-28-days";
-
-        // NEW: Stripe donate link
         private const string DonateUrl = "https://donate.stripe.com/6oUcN6els87m7TS1ZagjC00";
 
-        // ---- hwnd + global hotkeys
         private HwndSource? _hwndSrc;
         private IntPtr _hwnd = IntPtr.Zero;
 
         private string? _lastResponseText;
-
         private GameDetector? _gameDetector;
 
-        // ---- dynamic shortcuts cache for current game
         private List<ShortcutCapability> _activeShortcuts = new();
-
         private const string DefaultModel = "gemini-2.5-flash";
 
         public MainWindow()
         {
             InitializeComponent();
 
-            // Game detector: detects foreground window title and raises GameChanged
             _gameDetector = new GameDetector(
                 pollInterval: TimeSpan.FromSeconds(5),
                 debounce: TimeSpan.FromSeconds(15));
@@ -66,23 +56,18 @@ namespace GMentor
                 Dispatcher.Invoke(() => RefreshShortcutsFor(title));
             };
 
-            // Prime once on startup so the UI isn't stale until the first tick
             var initialTitle = ScreenCaptureService.TryDetectGameWindowTitle() ?? "General";
             RefreshShortcutsFor(initialTitle);
 
-            // Surface current provider/model/key
             LblProvider.Text = "Gemini";
 
             var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
             LblModel.Text = savedModel;
 
-            LblKey.Text = _keyStore.TryLoad("Gemini") != null
-                ? "•••• " + LocalizationService.T("Text.Saved")
-                : LocalizationService.T("Text.NotSet");
+            RefreshKeyLabel();
 
-            UpdateGameLabel("General"); // shows "Game: Default"
+            UpdateGameLabel("General");
 
-            // Tray
             _tray = new TrayService(
                 onOpen: () => Dispatcher.Invoke(ShowAndActivate),
                 onHelp: () => Dispatcher.Invoke(OpenHowTo),
@@ -92,7 +77,21 @@ namespace GMentor
             _ai = new AiAnalysisService(_keyStore, _logger, _http);
         }
 
-        // ---- window chrome helpers
+        private void RefreshKeyLabel()
+        {
+            // Session first, then persisted
+            if (SessionKeyStore.Has("Gemini"))
+            {
+                // If you want *no new localization keys*, keep it simple:
+                LblKey.Text = $"•••• {LocalizationService.T("Text.Saved")} (Session)";
+                return;
+            }
+
+            LblKey.Text = _keyStore.TryLoad("Gemini") != null
+                ? $"•••• {LocalizationService.T("Text.Saved")}"
+                : LocalizationService.T("Text.NotSet");
+        }
+
         private void ShowAndActivate()
         {
             Show();
@@ -113,7 +112,6 @@ namespace GMentor
             _hotkeys = new GlobalHotkeyManager(_hwndSrc);
             _hotkeys.HotkeyTriggered += categoryId => _ = RunFlowAsync(categoryId);
 
-            // initial hotkeys for current shortcuts
             ReloadGlobalHotkeys();
         }
 
@@ -133,22 +131,18 @@ namespace GMentor
             }
         }
 
-        // ===== Sticky-aware dynamic shortcuts wiring =====
         private void RefreshShortcutsFor(string gameWindowTitle)
         {
-            // Ask provider for capabilities of the *current* window title.
             var caps = PromptComposer.GetCapabilities(gameWindowTitle);
             var isSupported = !string.IsNullOrWhiteSpace(caps.GameName)
                               && !caps.GameName.Equals("General", StringComparison.OrdinalIgnoreCase);
 
-            // Supported game path
             if (isSupported)
             {
-                // If supported game changed, adopt it and visually highlight
                 if (!string.Equals(_stickyGameId, caps.GameName, StringComparison.OrdinalIgnoreCase))
                 {
-                    _stickyGameId = caps.GameName;       // pack.GameId (e.g. "ArcRaiders")
-                    _stickyGameTitle = gameWindowTitle;  // raw title from window
+                    _stickyGameId = caps.GameName;
+                    _stickyGameTitle = gameWindowTitle;
 
                     ApplyCapabilitiesToUi(caps);
                     UpdateGameLabel(caps.GameName);
@@ -157,12 +151,9 @@ namespace GMentor
                 return;
             }
 
-            // Not supported (General / unknown)
-            // If we already locked onto a supported game, keep it (no UI changes).
             if (_stickyGameId is not null)
                 return;
 
-            // First run or still no sticky game: show whatever (General) once.
             ApplyCapabilitiesToUi(caps);
             UpdateGameLabel(caps.GameName);
         }
@@ -183,7 +174,6 @@ namespace GMentor
             {
                 if (LblGameChip == null) return;
 
-                // Animate the foreground color for a quick pulse
                 var baseBrush = LblGameChip.Foreground as SolidColorBrush;
                 if (baseBrush == null || baseBrush.IsFrozen)
                 {
@@ -205,13 +195,9 @@ namespace GMentor
 
                 baseBrush.BeginAnimation(SolidColorBrush.ColorProperty, anim);
             }
-            catch
-            {
-                // Non-critical UX; ignore failures.
-            }
+            catch { }
         }
 
-        // Build the mapping & UI from a capability snapshot
         private void ApplyCapabilitiesToUi(GameCapabilities caps)
         {
             _activeShortcuts = caps.Shortcuts?.ToList() ?? new List<ShortcutCapability>();
@@ -242,21 +228,14 @@ namespace GMentor
                 lines.Add(LocalizationService.T("Text.NoShortcuts"));
 
             ShortcutsList.ItemsSource = lines;
-
-            // After updating shortcuts list, refresh actual OS global hotkeys
             ReloadGlobalHotkeys();
         }
 
-        /// <summary>
-        /// Registers global hotkeys based on _activeShortcuts (current game/package).
-        /// Called on startup and whenever capabilities change.
-        /// </summary>
         private void ReloadGlobalHotkeys()
         {
             _hotkeys?.Reload(_activeShortcuts);
         }
 
-        // ===== Custom title bar events =====
         private void OnTitleBarDrag(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed) DragMove();
@@ -266,13 +245,11 @@ namespace GMentor
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
         private void OnCloseClick(object sender, RoutedEventArgs e) => Close();
 
-        // ===== Window lifetime =====
         private void OnStateChanged(object? sender, EventArgs e)
         {
             if (WindowState == WindowState.Minimized)
             {
                 Hide();
-                // Keep classic tray balloon only here.
                 _tray.ShowBalloon(LocalizationService.T("Text.MiminizedMessage"));
             }
         }
@@ -282,26 +259,21 @@ namespace GMentor
             // If you prefer minimize-on-close, you can intercept here.
         }
 
-        // ===== Core run flow =====
         private async Task RunFlowAsync(string uiCategory)
         {
             try
             {
-                // simple cooldown
                 if ((DateTime.UtcNow - _lastRequestUtc) < TimeSpan.FromSeconds(2))
                 {
                     StatusText.Text = LocalizationService.T("Status.Cooldown");
                     return;
                 }
 
-                // reset UI before capture
                 ResetUiForNewRequest(status: LocalizationService.T("Status.CaptureRegion"));
 
-                // sample active window title BEFORE overlay
                 var rawTitleBefore = ScreenCaptureService.TryDetectGameWindowTitle() ?? "";
                 RememberNonSelfTitle(rawTitleBefore);
 
-                // capture region
                 var bmp = ScreenCaptureService.CaptureInteractiveRegion(this);
                 if (bmp == null)
                 {
@@ -309,7 +281,6 @@ namespace GMentor
                     return;
                 }
 
-                // bring our window back, show preview
                 ShowAndActivate();
 
                 PreviewImage.Source = ImagePipeline.ToBitmapImage(bmp);
@@ -323,11 +294,9 @@ namespace GMentor
 
                 StatusText.Text = LocalizationService.T("Status.TalkingToAI");
 
-                // prefer sticky game title if we have one
                 var trustedTitle = GetTrustedTitle();
                 var stickyTitle = _stickyGameTitle;
 
-                // call AI service (handles prompt, logging, provider call, YouTube query)
                 var result = await _ai.AnalyzeAsync(
                     uiCategory,
                     stickyTitle,
@@ -339,7 +308,6 @@ namespace GMentor
 
                 BadgeSearch.Visibility = result.UsedWebSearch ? Visibility.Visible : Visibility.Collapsed;
 
-                // Render into collapsible sections
                 RenderResponseSections(result.Text);
 
                 _lastRequestUtc = DateTime.UtcNow;
@@ -350,7 +318,6 @@ namespace GMentor
             }
             catch (MissingKeyException)
             {
-                // key is missing – same UX as before
                 StatusText.Text = LocalizationService.T("Status.MissingKey");
 
                 MessageBoxEx.Show(
@@ -362,15 +329,13 @@ namespace GMentor
             }
             catch (LlmServiceException ex)
             {
-                // Clear UI content for failed run
                 ResetRunFlowState();
 
                 switch (ex.HttpCode)
                 {
                     case 503:
                         StatusText.Text = LocalizationService.T("Status.ProviderOverloaded");
-                        MessageBoxEx.Show(
-                            this,
+                        MessageBoxEx.Show(this,
                             LocalizationService.T("Dialog.ProviderOverloaded.Body"),
                             LocalizationService.T("Dialog.ProviderOverloaded.Title"),
                             MessageBoxButton.OK,
@@ -379,21 +344,18 @@ namespace GMentor
 
                     case 429:
                         StatusText.Text = LocalizationService.T("Status.RateLimit");
-                        MessageBoxEx.Show(
-                            this,
+                        MessageBoxEx.Show(this,
                             LocalizationService.T("Dialog.RateLimit.Body"),
                             LocalizationService.T("Dialog.RateLimit.Title"),
                             MessageBoxButton.OK,
                             MessageBoxImage.Warning);
-
                         TryOpen(GoogleUsageUrl);
                         break;
 
                     case 401:
                     case 403:
                         StatusText.Text = LocalizationService.T("Status.AuthFailed");
-                        MessageBoxEx.Show(
-                            this,
+                        MessageBoxEx.Show(this,
                             LocalizationService.T("Dialog.AuthError.Body"),
                             $"{LocalizationService.T("Dialog.AuthError.Title")} ({ex.HttpCode})",
                             MessageBoxButton.OK,
@@ -403,8 +365,7 @@ namespace GMentor
                     case 408:
                     case 504:
                         StatusText.Text = LocalizationService.T("Status.Timeout");
-                        MessageBoxEx.Show(
-                            this,
+                        MessageBoxEx.Show(this,
                             LocalizationService.T("Dialog.Timeout.Body"),
                             $"{LocalizationService.T("Dialog.Timeout.Title")} ({ex.HttpCode})",
                             MessageBoxButton.OK,
@@ -414,8 +375,7 @@ namespace GMentor
                     default:
                         StatusText.Text = LocalizationService.T("Status.GenericError");
                         var details = $"{ex.HttpCode} {ex.ApiStatus}.\n\n{ex.ApiMessage}";
-                        MessageBoxEx.Show(
-                            this,
+                        MessageBoxEx.Show(this,
                             LocalizationService.TWith("Dialog.AIError.Body", "{DETAILS}", details),
                             LocalizationService.T("Dialog.AIError.Title"),
                             MessageBoxButton.OK,
@@ -428,8 +388,7 @@ namespace GMentor
                 ResetRunFlowState();
 
                 StatusText.Text = LocalizationService.T("Status.RateLimit");
-                MessageBoxEx.Show(
-                    this,
+                MessageBoxEx.Show(this,
                     LocalizationService.T("Dialog.RateLimit.Http.Body"),
                     LocalizationService.T("Dialog.RateLimit.Title"),
                     MessageBoxButton.OK,
@@ -442,8 +401,7 @@ namespace GMentor
                 ResetRunFlowState();
 
                 StatusText.Text = LocalizationService.T("Status.RequestCanceled");
-                MessageBoxEx.Show(
-                    this,
+                MessageBoxEx.Show(this,
                     LocalizationService.T("Dialog.RequestCanceled.Body"),
                     LocalizationService.T("Dialog.Timeout.Title"),
                     MessageBoxButton.OK,
@@ -454,8 +412,7 @@ namespace GMentor
                 ResetRunFlowState();
 
                 StatusText.Text = LocalizationService.T("Status.GenericError");
-                MessageBoxEx.Show(
-                    this,
+                MessageBoxEx.Show(this,
                     LocalizationService.T("Dialog.RequestError.Body"),
                     LocalizationService.T("Dialog.RequestError.Title"),
                     MessageBoxButton.OK,
@@ -512,7 +469,6 @@ namespace GMentor
             }
         }
 
-        // ---- Title handling (don’t report “GMentor” as the game)
         private void RememberNonSelfTitle(string title)
         {
             var t = (title ?? "").Trim();
@@ -537,7 +493,6 @@ namespace GMentor
             return "Unknown";
         }
 
-        // --- UI helpers for request lifecycle ---
         private void ResetUiForNewRequest(string status)
         {
             BadgeSearch.Visibility = Visibility.Collapsed;
@@ -552,7 +507,6 @@ namespace GMentor
         private void RestoreUiAfterRequest()
         {
             bool hasText = !string.IsNullOrWhiteSpace(_lastResponseText);
-
             CopyBtn.IsEnabled = hasText;
             OpenYouTubeBtn.IsEnabled = hasText;
         }
@@ -560,20 +514,16 @@ namespace GMentor
         private static void TryOpen(string url)
         {
             try { Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true }); }
-            catch { /* ignore */ }
+            catch { }
         }
 
-        // ===== Menu actions =====
         private void OnChangeProviderKey(object sender, RoutedEventArgs e)
         {
             var w = new SetupWindow();
             if (w.ShowDialog() == true)
             {
-                LblKey.Text = _keyStore.TryLoad("Gemini") != null
-                    ? $"•••• {LocalizationService.T("Text.Saved")}"
-                    : LocalizationService.T("Text.NotSet");
+                RefreshKeyLabel();
 
-                // refresh model from store
                 var savedModel = _keyStore.TryLoad("Gemini.Model") ?? DefaultModel;
                 LblModel.Text = savedModel;
 
@@ -641,7 +591,6 @@ namespace GMentor
                 expander.IsExpanded = false;
         }
 
-        // NEW: Donate handler
         private void OnDonate(object sender, RoutedEventArgs e)
         {
             TryOpen(DonateUrl);
@@ -658,13 +607,11 @@ namespace GMentor
                 StaysOpen = false
             };
 
-            // “Language” header
             var languageRoot = new MenuItem
             {
                 Header = LocalizationService.T("Menu.Language")
             };
 
-            // English
             var enItem = new MenuItem
             {
                 Header = LocalizationService.T("Menu.Language.En"),
@@ -674,7 +621,6 @@ namespace GMentor
             };
             enItem.Click += OnLanguageClick;
 
-            // Turkish
             var trItem = new MenuItem
             {
                 Header = LocalizationService.T("Menu.Language.Tr"),

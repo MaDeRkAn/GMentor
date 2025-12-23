@@ -2,7 +2,6 @@
 using System.Security.Cryptography;
 using System.Text;
 
-
 namespace GMentor.Services
 {
     public sealed class SecureKeyStore

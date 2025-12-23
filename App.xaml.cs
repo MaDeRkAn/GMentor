@@ -15,9 +15,7 @@ namespace GMentor
         {
             AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
 
-            // Prevent WPF from auto-shutting down when the first window closes
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
             base.OnStartup(e);
 
             // --- Language bootstrap ---
@@ -34,13 +32,11 @@ namespace GMentor
                 }
                 else
                 {
-                    // User bailed out; default to English
                     lang = "en";
                     AppSettings.SaveLanguage(lang);
                 }
             }
 
-            // Initial localization load (may be overridden later when packs sync)
             LocalizationService.Load(lang!);
 
             // --- API key bootstrap ---
@@ -48,14 +44,14 @@ namespace GMentor
             var existingKey = store.TryLoad("Gemini");
 
             // First-run: no key yet -> show setup dialog
-            if (string.IsNullOrWhiteSpace(existingKey))
+            // NOTE: Even if user doesn't save key, SetupWindow now sets SessionKeyStore so runtime works.
+            if (string.IsNullOrWhiteSpace(existingKey) && !SessionKeyStore.Has("Gemini"))
             {
                 var setup = new SetupWindow();
                 var ok = setup.ShowDialog();
 
                 if (ok != true)
                 {
-                    // User cancelled / closed setup – terminate app cleanly
                     Shutdown();
                     return;
                 }
@@ -74,14 +70,9 @@ namespace GMentor
             {
                 try
                 {
-                    // 1) Hot-reload game prompt packs
                     _packProvider?.Reload();
-
-                    // 2) Hot-reload localization packs for the current language
-                    //    so newly downloaded strings.<lang>.gpack take effect
                     LocalizationService.Load(LocalizationService.CurrentLanguage);
 
-                    // 3) Show the same “language updated” dialog once per session
                     if (!_localizationReloadNotified)
                     {
                         _localizationReloadNotified = true;
@@ -98,26 +89,30 @@ namespace GMentor
                 }
                 catch
                 {
-                    // best effort – never crash the app on background sync
+                    // best effort
                 }
             };
 
-            // Fire-and-forget initial sync
             _ = _packSync.CheckNowAsync();
 
-            // --- Create and show the main window ---
             var main = new MainWindow();
             MainWindow = main;
             main.Show();
 
-            // From this point, closing MainWindow should close the app
             ShutdownMode = ShutdownMode.OnMainWindowClose;
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
-            _packSync?.Dispose();
-            base.OnExit(e);
+            try
+            {
+                _packSync?.Dispose();
+                SessionKeyStore.Clear();
+            }
+            finally
+            {
+                base.OnExit(e);
+            }
         }
     }
 }

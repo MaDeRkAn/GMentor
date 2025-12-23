@@ -14,6 +14,7 @@ namespace GMentor
         private readonly Services.SecureKeyStore _keys = new("GMentor");
 
         private const string DefaultModel = "gemini-2.5-flash";
+        private const string Provider = "Gemini";
 
         public SetupWindow()
         {
@@ -24,7 +25,7 @@ namespace GMentor
             SelectModelInCombo(savedModel);
 
             // Prefill saved key
-            var savedKey = _keys.TryLoad("Gemini");
+            var savedKey = _keys.TryLoad(Provider);
             if (!string.IsNullOrWhiteSpace(savedKey))
             {
                 KeyBox.Password = savedKey;
@@ -67,7 +68,6 @@ namespace GMentor
             }
             else
             {
-                // fallback: default model, or first item
                 foreach (var item in ModelCombo.Items)
                 {
                     if (item is ComboBoxItem cbi)
@@ -103,7 +103,7 @@ namespace GMentor
         }
 
         private void OnCloseClick(object sender, RoutedEventArgs e)
-            => DialogResult = false;   // instead of Close()
+            => DialogResult = false;
 
         // ===== Hyperlinks =====
         private void OnLink(object sender, RequestNavigateEventArgs e)
@@ -121,7 +121,6 @@ namespace GMentor
 
         private async void OnTest(object sender, RoutedEventArgs e)
         {
-            // Optimistic UI: show we're working and lock buttons
             BtnTest.IsEnabled = false;
             BtnContinue.IsEnabled = false;
             Status.Text = LocalizationService.T("Setup.Status.CheckingKey");
@@ -138,16 +137,15 @@ namespace GMentor
                 var model = GetSelectedModelId();
 
                 // Simple ping via existing router
-                await Core.ProviderRouter.TestAsync("Gemini", model, key!, _http, this);
+                await Core.ProviderRouter.TestAsync(Provider, model, key!, _http, this);
 
                 Status.Text = LocalizationService.TWith("Setup.Status.KeyOk", "{MODEL}", model);
                 BtnContinue.IsEnabled = true;
 
-                if (RememberKey.IsChecked == true)
-                    _keys.Save("Gemini", key!);
-
                 // Persist model choice regardless (not sensitive)
                 _keys.Save("Gemini.Model", model);
+
+                // IMPORTANT: Do not force-save key on Test. Continue decides.
             }
             catch
             {
@@ -173,10 +171,14 @@ namespace GMentor
 
             var model = GetSelectedModelId();
 
+            // FIX: Always set session key so app works immediately even if not saved
+            SessionKeyStore.Set(Provider, key!);
+
+            // Persist only if user opted in
             if (RememberKey.IsChecked == true)
-                _keys.Save("Gemini", key!);
+                _keys.Save(Provider, key!);
             else
-                _keys.Delete("Gemini");
+                _keys.Delete(Provider); // user explicitly chose not to store
 
             // Always remember selected model (not secret)
             _keys.Save("Gemini.Model", model);
