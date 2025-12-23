@@ -13,6 +13,8 @@ namespace GMentor
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
+
             // Prevent WPF from auto-shutting down when the first window closes
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
