@@ -1,10 +1,11 @@
-﻿using System;
+﻿using GMentor.Core;
+using GMentor.Services;
+using System;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
-using GMentor.Services;
 
 namespace GMentor
 {
@@ -136,16 +137,104 @@ namespace GMentor
 
                 var model = GetSelectedModelId();
 
-                // Simple ping via existing router
+                // Ping via existing router
                 await Core.ProviderRouter.TestAsync(Provider, model, key!, _http, this);
 
                 Status.Text = LocalizationService.TWith("Setup.Status.KeyOk", "{MODEL}", model);
                 BtnContinue.IsEnabled = true;
 
-                // Persist model choice regardless (not sensitive)
+                // Persist model choice (not sensitive)
                 _keys.Save("Gemini.Model", model);
 
                 // IMPORTANT: Do not force-save key on Test. Continue decides.
+            }
+            catch (LlmServiceException ex)
+            {
+                // Mirror MainWindow behavior: reasoned UX
+                switch (ex.HttpCode)
+                {
+                    case 503:
+                        Status.Text = LocalizationService.T("Status.ProviderOverloaded");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.ProviderOverloaded.Body"),
+                            LocalizationService.T("Dialog.ProviderOverloaded.Title"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                        break;
+
+                    case 429:
+                        Status.Text = LocalizationService.T("Status.RateLimit");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.RateLimit.Body"),
+                            LocalizationService.T("Dialog.RateLimit.Title"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+
+                        TryOpen("https://aistudio.google.com/app/usage?timeRange=last-28-days");
+                        break;
+
+                    case 401:
+                    case 403:
+                        Status.Text = LocalizationService.T("Status.AuthFailed");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.AuthError.Body"),
+                            $"{LocalizationService.T("Dialog.AuthError.Title")} ({ex.HttpCode})",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        break;
+
+                    case 408:
+                    case 504:
+                        Status.Text = LocalizationService.T("Status.Timeout");
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.T("Dialog.Timeout.Body"),
+                            $"{LocalizationService.T("Dialog.Timeout.Title")} ({ex.HttpCode})",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+                        break;
+
+                    default:
+                        Status.Text = LocalizationService.T("Status.GenericError");
+                        var details = $"{ex.HttpCode} {ex.ApiStatus}.\n\n{ex.ApiMessage}";
+                        MessageBoxEx.Show(
+                            this,
+                            LocalizationService.TWith("Dialog.AIError.Body", "{DETAILS}", details),
+                            LocalizationService.T("Dialog.AIError.Title"),
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                        break;
+                }
+
+                BtnContinue.IsEnabled = false;
+            }
+            catch (HttpRequestException hre) when ((int?)hre.StatusCode == 429)
+            {
+                Status.Text = LocalizationService.T("Status.RateLimit");
+                MessageBoxEx.Show(
+                    this,
+                    LocalizationService.T("Dialog.RateLimit.Http.Body"),
+                    LocalizationService.T("Dialog.RateLimit.Title"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                TryOpen("https://aistudio.google.com/app/usage?timeRange=last-28-days");
+                BtnContinue.IsEnabled = false;
+            }
+            catch (TaskCanceledException)
+            {
+                Status.Text = LocalizationService.T("Status.Timeout");
+                MessageBoxEx.Show(
+                    this,
+                    LocalizationService.T("Dialog.Timeout.Body"),
+                    LocalizationService.T("Dialog.Timeout.Title"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                BtnContinue.IsEnabled = false;
             }
             catch
             {
@@ -157,6 +246,20 @@ namespace GMentor
                 BtnTest.IsEnabled = true;
             }
         }
+
+        private static void TryOpen(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch { /* ignore */ }
+        }
+
 
         private void OnCancel(object sender, RoutedEventArgs e) => DialogResult = false;
 
